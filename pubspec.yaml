@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.8
+  sdk: ^3.8.1
 
 dependencies:
   flutter:
@@ -30,9 +30,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "images/signup.png" # Changed from assets/images/app_icon.png to an existing image as a placeholder or fix
+  image_path: "images/app_icon.png"
   adaptive_icon_background: "#8B2323"
-  adaptive_icon_foreground: "images/signup.png"
+  adaptive_icon_foreground: "images/app_icon.png"
 
 flutter:
   uses-material-design: true

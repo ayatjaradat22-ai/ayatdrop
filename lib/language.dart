@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'home.dart';
+import 'setting.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -26,8 +28,23 @@ class _LanguageScreenState extends State<LanguageScreen> {
   void _saveLanguage() async {
     if (_selectedLangCode != context.locale.languageCode) {
       await context.setLocale(Locale(_selectedLangCode));
-    }
-    if (mounted) {
+      
+      if (!mounted) return;
+
+      // العودة للرئيسية (تبويب الحساب) ثم فتح الإعدادات لضمان التحديث الكامل
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MainWrapper(initialIndex: 3),
+        ),
+        (route) => false,
+      );
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      );
+    } else {
       Navigator.pop(context);
     }
   }

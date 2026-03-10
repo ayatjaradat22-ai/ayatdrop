@@ -7,14 +7,15 @@ import 'ai_guide_screen.dart';
 import 'account.dart';
 
 class MainWrapper extends StatefulWidget {
-  const MainWrapper({super.key});
+  final int initialIndex;
+  const MainWrapper({super.key, this.initialIndex = 0});
 
   @override
   State<MainWrapper> createState() => _MainWrapperState();
 }
 
 class _MainWrapperState extends State<MainWrapper> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   static const Color dropRed = Color(0xFFFF1111);
 
   final List<Widget> _pages = [
@@ -23,6 +24,12 @@ class _MainWrapperState extends State<MainWrapper> {
     const AiGuideScreen(),
     const AccountScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   @override
   Widget build(BuildContext context) {
