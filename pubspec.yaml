@@ -1,0 +1,44 @@
+name: ayatdrop
+description: "A premium discount and coupon application in Jordan."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.10.8 <4.0.0' # تحديد النطاق بشكل أدق
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- Firebase Ecosystem ---
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  cloud_firestore: ^4.13.6
+  firebase_messaging: ^14.7.10
+  firebase_storage: ^11.5.6 # أضفتها لكِ لرفع صور الملف الشخصي
+
+  # --- AI Intelligence ---
+  google_generative_ai: ^0.4.5 # قوة Gemini في تطبيقك
+
+  # --- UI & Experience ---
+  easy_localization: ^3.0.3
+  url_launcher: ^6.2.1
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+  image_picker: ^1.0.7 # ضرورية لاختيار الصور من الاستوديو
+  cached_network_image: ^3.3.1 # لتحميل الصور بسرعة وتوفير بيانات المستخدم
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - images/
+    - assets/translations/
+    # إذا كان لديكِ صور بداخل مجلدات فرعية، تأكدي من إضافتها هنا

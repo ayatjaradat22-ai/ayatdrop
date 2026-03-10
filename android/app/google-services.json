@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "975621637698",
+    "project_id": "dropapp-8bcf0",
+    "storage_bucket": "dropapp-8bcf0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:975621637698:android:22581357ba50cfe0e14fdb",
+        "android_client_info": {
+          "package_name": "com.example.ayatdrop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrHksL8h5Dgt8cSidxCR9aaUbaRdMspFU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:975621637698:android:faac88e9f36fa1c0e14fdb",
+        "android_client_info": {
+          "package_name": "com.example.drop_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrHksL8h5Dgt8cSidxCR9aaUbaRdMspFU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

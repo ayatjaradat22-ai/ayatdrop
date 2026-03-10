@@ -1,0 +1,8 @@
+{
+  "login_title": "تسجيل الدخول",
+  "email_hint": "البريد الإلكتروني",
+  "password_hint": "كلمة المرور",
+  "login_button": "دخول",
+  "signup_prompt": "ليس لديك حساب؟",
+  "signup_action": "إنشاء حساب"
+}

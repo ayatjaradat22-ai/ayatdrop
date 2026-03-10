@@ -1,0 +1,9 @@
+{
+  "drop": "drop",
+  "login_title": "Log in",
+  "email_hint": "Email",
+  "password_hint": "Password",
+  "login_button": "Log In",
+  "signup_prompt": "Don't have an account?",
+  "signup_action": "Sign Up"
+}
