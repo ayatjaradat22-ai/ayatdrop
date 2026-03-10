@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'map.dart';
 import 'ai_guide_screen.dart';
 import 'account.dart';
@@ -37,11 +38,11 @@ class _MainWrapperState extends State<MainWrapper> {
         unselectedItemColor: Colors.grey.shade400,
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.map_rounded), label: "Map"),
-          BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_mosaic_rounded), label: "AI Guide"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: "Account"),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.home_filled), label: "home_nav".tr()),
+          BottomNavigationBarItem(icon: const Icon(Icons.map_rounded), label: "map_nav".tr()),
+          BottomNavigationBarItem(icon: const Icon(Icons.auto_awesome_mosaic_rounded), label: "ai_nav".tr()),
+          BottomNavigationBarItem(icon: const Icon(Icons.person_rounded), label: "account_nav".tr()),
         ],
       ),
     );
@@ -63,17 +64,17 @@ class HomeScreenContent extends StatelessWidget {
           const SizedBox(height: 20),
           _buildExploreButton(),
           const SizedBox(height: 25),
-          _buildSectionTitle("Popular Categories"),
+          _buildSectionTitle("popular_categories".tr()),
           const SizedBox(height: 15),
           _buildCategoriesRow(),
           const SizedBox(height: 30),
-          _buildSectionTitle("Savings Summary"),
+          _buildSectionTitle("savings_summary".tr()),
           const SizedBox(height: 10),
           _buildSavingsCard(),
           const SizedBox(height: 30),
-          _buildSectionTitle("Trending Deals"),
+          _buildSectionTitle("trending_deals".tr()),
           const SizedBox(height: 20),
-          _buildDealsList(), // هنا سيتم عرض العروض من Firestore
+          _buildDealsList(),
           const SizedBox(height: 40),
         ],
       ),
@@ -101,24 +102,23 @@ class HomeScreenContent extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 15),
-          // جلب اسم المستخدم من Firestore
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
             builder: (context, snapshot) {
-              String name = "Saver";
+              String name = "saver_default".tr();
               if (snapshot.hasData && snapshot.data!.exists) {
-                name = snapshot.data!.get('name') ?? "Saver";
+                name = snapshot.data!.get('name') ?? "saver_default".tr();
               }
-              return Text("Hello, $name! 👋", style: const TextStyle(color: Colors.white70, fontSize: 16));
+              return Text("hello_user".tr(args: [name]), style: const TextStyle(color: Colors.white70, fontSize: 16));
             },
           ),
-          const Text("Find deals within your budget", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
+          Text("header_tagline".tr(), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
           const SizedBox(height: 25),
           TextField(
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,
-              hintText: "I have 20 JOD.. where should I go?",
+              hintText: "search_hint".tr(),
               prefixIcon: const Icon(Icons.auto_awesome, color: Colors.purple),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
             ),
@@ -128,7 +128,6 @@ class HomeScreenContent extends StatelessWidget {
     );
   }
 
-  // ويدجت عرض العروض من Firestore
   Widget _buildDealsList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('deals').orderBy('createdAt', descending: true).snapshots(),
@@ -191,12 +190,11 @@ class HomeScreenContent extends StatelessWidget {
       children: [
         const SizedBox(height: 10),
         Icon(Icons.inventory_2_outlined, size: 70, color: Colors.grey.shade200),
-        const Text("No active deals today", style: TextStyle(color: Colors.grey)),
+        Text("no_deals".tr(), style: const TextStyle(color: Colors.grey)),
       ],
     );
   }
 
-  // بقية الويدجت (Explore, Categories, Savings) تبقى كما هي
   Widget _buildExploreButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -207,13 +205,13 @@ class HomeScreenContent extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.explore, color: Colors.white),
-            SizedBox(width: 15),
-            Text("Explore Nearby Deals", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            Spacer(),
-            Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+            const Icon(Icons.explore, color: Colors.white),
+            const SizedBox(width: 15),
+            Text("explore_nearby".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            const Spacer(),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
           ],
         ),
       ),
@@ -221,13 +219,13 @@ class HomeScreenContent extends StatelessWidget {
   }
 
   Widget _buildCategoriesRow() {
-    return const Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        CategoryIconItem(icon: Icons.restaurant, label: "Food"),
-        CategoryIconItem(icon: Icons.shopping_bag, label: "Fashion"),
-        CategoryIconItem(icon: Icons.local_cafe, label: "Cafes"),
-        CategoryIconItem(icon: Icons.devices, label: "Tech"),
+        CategoryIconItem(icon: Icons.restaurant, label: "cat_food".tr()),
+        CategoryIconItem(icon: Icons.shopping_bag, label: "cat_fashion".tr()),
+        CategoryIconItem(icon: Icons.local_cafe, label: "cat_cafes".tr()),
+        CategoryIconItem(icon: Icons.devices, label: "cat_tech".tr()),
       ],
     );
   }
@@ -244,15 +242,15 @@ class HomeScreenContent extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(color: lightGreen, borderRadius: BorderRadius.circular(25)),
-      child: const Row(
+      child: Row(
         children: [
-          CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.account_balance_wallet, color: Colors.white)),
-          SizedBox(width: 15),
+          const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.account_balance_wallet, color: Colors.white)),
+          const SizedBox(width: 15),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Total Money Saved", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              Text("0.000 JOD", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              Text("total_saved_title".tr(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              const Text("0.000 JOD", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             ],
           )
         ],

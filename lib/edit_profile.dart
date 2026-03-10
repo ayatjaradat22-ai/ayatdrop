@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -21,7 +22,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserData();
   }
 
-  // جلب بيانات المستخدم الحالية ووضعها في الحقل
   Future<void> _loadUserData() async {
     var doc = await FirebaseFirestore.instance.collection('users').doc(user?.uid).get();
     if (doc.exists) {
@@ -31,7 +31,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // دالة تحديث البيانات في Firestore
   Future<void> _updateProfile() async {
     if (_nameController.text.isEmpty) return;
 
@@ -44,12 +43,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile updated successfully!"), backgroundColor: Colors.green),
+        SnackBar(content: Text("profile_updated_success".tr()), backgroundColor: Colors.green),
       );
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        SnackBar(content: Text("error_occurred".tr() + ": $e"), backgroundColor: Colors.red),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -68,9 +67,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Edit Profile",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+        title: Text(
+          "edit_profile_title".tr(),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: SafeArea(
@@ -85,13 +84,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   _buildModernLogo(),
                   const SizedBox(height: 40),
                   
-                  // حقل الاسم (الوحيد القابل للتعديل حالياً)
-                  _buildInputField("Full Name", Icons.person_outline_rounded, _nameController),
+                  _buildInputField("full_name_label".tr(), Icons.person_outline_rounded, _nameController),
                   
                   const SizedBox(height: 20),
                   
-                  // الإيميل (للقراءة فقط لأنه مرتبط بحساب Firebase)
-                  _buildReadOnlyField("Email Address", Icons.mail_outline_rounded, user?.email ?? ""),
+                  _buildReadOnlyField("email_address_label".tr(), Icons.mail_outline_rounded, user?.email ?? ""),
                   
                   const SizedBox(height: 50),
                   _buildSaveButton(),
@@ -188,9 +185,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           elevation: 0,
         ),
-        child: const Text(
-          "SAVE CHANGES",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+        child: Text(
+          "save_changes_button".tr(),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
         ),
       ),
     );

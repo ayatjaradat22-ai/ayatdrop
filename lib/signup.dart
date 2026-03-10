@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'drop.dart'; // تأكدي أن هذا الملف يحتوي على كلاس LoginScreen
+import 'package:easy_localization/easy_localization.dart';
+import 'database_service.dart';
+import 'home.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -17,11 +19,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _confirmPassController = TextEditingController();
 
   bool _isPasswordHidden = true;
-  static const Color dropRed = Color(0xFFFF1111); // الأحمر الصريح المعتمد
+  static const Color dropRed = Color(0xFFFF1111);
 
   Future<void> signUpUser() async {
     if (_passController.text != _confirmPassController.text) {
-      _showSnackBar("كلمتا المرور غير متطابقتين");
+      _showSnackBar("passwords_not_match".tr());
       return;
     }
 
@@ -32,37 +34,36 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
 
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passController.text.trim(),
       );
 
+      if (userCredential.user != null) {
+        await DatabaseService().saveUserToFirestore(
+          uid: userCredential.user!.uid,
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+        );
+      }
+
       if (!mounted) return;
       Navigator.pop(context);
 
-      _navigateToLogin();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainWrapper()),
+      );
 
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      // ميزة للمطور لتسهيل التجربة أثناء البرمجة
-      if (_emailController.text.isNotEmpty) {
-        _navigateToLogin();
-      } else {
-        _showSnackBar("حدث خطأ، تأكدي من البيانات");
-      }
+      _showSnackBar(e.toString());
     }
-  }
-
-  void _navigateToLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
   }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message, textAlign: TextAlign.center), backgroundColor: Colors.black87),
+      SnackBar(content: Text(message), backgroundColor: Colors.black87),
     );
   }
 
@@ -71,10 +72,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // الخلفية
-          Positioned.fill(
-            child: Image.asset('images/signup.png', fit: BoxFit.cover),
-          ),
+          Positioned.fill(child: Image.asset('images/signup.png', fit: BoxFit.cover)),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -82,7 +80,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 40),
-                    // تأثير الزجاج المحسن (Glassmorphism)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
                       child: BackdropFilter(
@@ -96,53 +93,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           child: Column(
                             children: [
-                              const Text(
-                                "Create Account",
-                                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black),
-                              ),
+                              Text("signup_title".tr(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 25),
-                              _buildModernField(_nameController, "Full Name", Icons.person_outline),
+                              _buildModernField(_nameController, "full_name_hint".tr(), Icons.person_outline),
                               const SizedBox(height: 15),
-                              _buildModernField(_emailController, "Email Address", Icons.email_outlined),
+                              _buildModernField(_emailController, "email_hint".tr(), Icons.email_outlined),
                               const SizedBox(height: 15),
-                              _buildModernField(_passController, "Password", Icons.lock_outline, isPass: _isPasswordHidden,
+                              _buildModernField(_passController, "password_hint".tr(), Icons.lock_outline, isPass: _isPasswordHidden,
                                   suffix: IconButton(
-                                    icon: Icon(_isPasswordHidden ? Icons.visibility_off : Icons.visibility, color: Colors.black54),
+                                    icon: Icon(_isPasswordHidden ? Icons.visibility_off : Icons.visibility),
                                     onPressed: () => setState(() => _isPasswordHidden = !_isPasswordHidden),
                                   )),
                               const SizedBox(height: 15),
-                              _buildModernField(_confirmPassController, "Confirm Password", Icons.lock_reset_outlined, isPass: _isPasswordHidden),
+                              _buildModernField(_confirmPassController, "confirm_password_hint".tr(), Icons.lock_reset_outlined, isPass: _isPasswordHidden),
                               const SizedBox(height: 30),
-
-                              // زر التسجيل المطور
                               SizedBox(
-                                width: double.infinity,
-                                height: 55,
+                                width: double.infinity, height: 55,
                                 child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: dropRed,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                                    elevation: 5,
-                                  ),
+                                  style: ElevatedButton.styleFrom(backgroundColor: dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                                   onPressed: signUpUser,
-                                  child: const Text("SIGN UP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                  child: Text("signup_button".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // رابط العودة للوجن
-                    TextButton(
-                      onPressed: _navigateToLogin,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text("Already have an account? ", style: TextStyle(color: Colors.black87)),
-                          Text("Log In", style: TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
-                        ],
                       ),
                     ),
                   ],
@@ -157,21 +132,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Widget _buildModernField(TextEditingController controller, String hint, IconData icon, {bool isPass = false, Widget? suffix}) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
-      ),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(15)),
       child: TextField(
-        controller: controller,
-        obscureText: isPass,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: Colors.black54),
-          suffixIcon: suffix,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-        ),
+        controller: controller, obscureText: isPass,
+        decoration: InputDecoration(hintText: hint, prefixIcon: Icon(icon), suffixIcon: suffix, border: InputBorder.none, contentPadding: const EdgeInsets.all(15)),
       ),
     );
   }

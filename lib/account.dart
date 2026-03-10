@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'setting.dart';
 import 'order_history.dart';
 import 'payment_methods.dart';
 import 'edit_profile.dart';
-import 'drop.dart'; // لشاشة تسجيل الدخول
+import 'drop.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -26,17 +27,17 @@ class _AccountScreenState extends State<AccountScreen> {
         backgroundColor: dropRed,
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false, // حذف سهم العودة
+        automaticallyImplyLeading: false,
         title: const Text("drop", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
         builder: (context, snapshot) {
-          String name = "Loading...";
-          String email = user?.email ?? "No Email";
+          String name = "loading".tr();
+          String email = user?.email ?? "no_email".tr();
 
           if (snapshot.hasData && snapshot.data!.exists) {
-            name = snapshot.data!.get('name') ?? "No Name";
+            name = snapshot.data!.get('name') ?? "no_name".tr();
           }
 
           return SingleChildScrollView(
@@ -44,28 +45,26 @@ class _AccountScreenState extends State<AccountScreen> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                const Text("My Account", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+                Text("my_account_title".tr(), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 25),
 
-                // عرض الاسم المسجل في Firestore
-                _buildInfoCard("Name", name, Icons.edit_outlined, () {
+                _buildInfoCard("name_label".tr(), name, Icons.edit_outlined, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
                 }),
 
-                // عرض الإيميل المسجل في Firebase Auth
-                _buildInfoCard("Email", email, Icons.email_outlined, null),
+                _buildInfoCard("email_label".tr(), email, Icons.email_outlined, null),
 
                 const SizedBox(height: 20),
 
-                _buildActionCard("Order History", Icons.history, () {
+                _buildActionCard("order_history".tr(), Icons.history, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderHistoryScreen()));
                 }),
 
-                _buildActionCard("Payment Methods", Icons.payment, () {
+                _buildActionCard("payment_methods".tr(), Icons.payment, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentMethodsScreen()));
                 }),
 
-                _buildActionCard("Settings", Icons.settings_outlined, () {
+                _buildActionCard("settings".tr(), Icons.settings_outlined, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
                 }),
 
@@ -84,13 +83,13 @@ class _AccountScreenState extends State<AccountScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         ),
-                        child: const Text("Edit Profile", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: Text("edit_profile".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 20),
                     TextButton(
                       onPressed: () => _logout(),
-                      child: const Text("Logout", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                      child: Text("logout_button".tr(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -106,10 +105,10 @@ class _AccountScreenState extends State<AccountScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to logout?"),
+        title: Text("logout_title".tr()),
+        content: Text("logout_confirmation".tr()),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
           TextButton(
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
@@ -119,7 +118,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 (route) => false,
               );
             },
-            child: const Text("Logout", style: TextStyle(color: Colors.red)),
+            child: Text("logout_button".tr(), style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
-import 'account.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'edit_profile.dart';
 import 'change_password.dart';
 import 'language.dart';
 import 'drop.dart';
-import 'contactus.dart';
 import 'aboutapp.dart';
 import 'premium.dart';
 import 'saved_stores.dart';
-import 'privacy_security.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,12 +16,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  static const Color dropRed = Color(0xFFFF1111); // الأحمر المعتمد
+  static const Color dropRed = Color(0xFFFF1111);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // خلفية بيضاء لنظافة التصميم
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -32,7 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Settings", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+        title: Text("settings".tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
         centerTitle: false,
       ),
       body: SingleChildScrollView(
@@ -42,37 +39,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-
-            // بطاقة بريميوم بتصميم ملكي
             _buildPremiumCard(context),
-
             const SizedBox(height: 30),
-            _buildSectionHeader("Account Settings"),
-            _buildModernTile(Icons.person_outline_rounded, "Personal Account", () {}), // AccountScreen
-            _buildModernTile(Icons.edit_outlined, "Edit Profile", () {
+            _buildSectionHeader("account_settings_section".tr()),
+            _buildModernTile(Icons.person_outline_rounded, "personal_account".tr(), () {}),
+            _buildModernTile(Icons.edit_outlined, "edit_profile".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
             }),
-            _buildModernTile(Icons.key_outlined, "Security & Password", () {
+            _buildModernTile(Icons.key_outlined, "security_password".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordScreen()));
             }),
-            _buildModernTile(Icons.bookmark_border_rounded, "Saved Offers", () {
+            _buildModernTile(Icons.bookmark_border_rounded, "saved_offers".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedStoresScreen()));
             }),
-
             const SizedBox(height: 25),
-            _buildSectionHeader("Preferences"),
-            _buildModernTile(Icons.language_rounded, "App Language", () {
+            _buildSectionHeader("preferences_section".tr()),
+            _buildModernTile(Icons.language_rounded, "app_language".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen()));
             }),
-            _buildModernTile(Icons.notifications_none_rounded, "Notifications", () {}),
-
+            _buildModernTile(Icons.notifications_none_rounded, "notifications".tr(), () {}),
             const SizedBox(height: 25),
-            _buildSectionHeader("Support"),
-            _buildModernTile(Icons.help_outline_rounded, "Help Center", () {}),
-            _buildModernTile(Icons.info_outline_rounded, "About Drop App", () {
+            _buildSectionHeader("support_section".tr()),
+            _buildModernTile(Icons.help_outline_rounded, "help_center".tr(), () {}),
+            _buildModernTile(Icons.info_outline_rounded, "about_drop".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutAppScreen()));
             }),
-
             const SizedBox(height: 40),
             _buildLogoutButton(context),
             const SizedBox(height: 40),
@@ -115,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: Colors.black, // أسود ملكي
+        color: Colors.black,
         borderRadius: BorderRadius.circular(25),
         boxShadow: [BoxShadow(color: dropRed.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
       ),
@@ -125,9 +116,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Drop Premium", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                Text("premium_title".tr(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 5),
-                Text("Unlock exclusive deals & AI features", style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+                Text("premium_subtitle".tr(), style: TextStyle(color: Colors.grey[400], fontSize: 13)),
                 const SizedBox(height: 15),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -136,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     elevation: 0,
                   ),
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen())),
-                  child: const Text("Get Started", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: Text("get_started".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -159,15 +150,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
+            (route) => false,
           );
         },
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.logout_rounded, color: dropRed, size: 20),
-            SizedBox(width: 10),
-            Text("Logout Account", style: TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 16)),
+            const Icon(Icons.logout_rounded, color: dropRed, size: 20),
+            const SizedBox(width: 10),
+            Text("logout_button".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
       ),

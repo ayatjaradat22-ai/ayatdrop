@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'setting.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -9,13 +9,28 @@ class LanguageScreen extends StatefulWidget {
 }
 
 class _LanguageScreenState extends State<LanguageScreen> {
-  String _selectedLangCode = 'en';
+  late String _selectedLangCode;
   static const Color dropRed = Color(0xFFFF1111);
 
   final List<Map<String, String>> _languages = [
     {'name': 'English', 'desc': 'United States', 'code': 'en', 'flag': '🇺🇸'},
     {'name': 'العربية', 'desc': 'المنطقة العربية', 'code': 'ar', 'flag': '🇸🇦'},
   ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _selectedLangCode = context.locale.languageCode;
+  }
+
+  void _saveLanguage() async {
+    if (_selectedLangCode != context.locale.languageCode) {
+      await context.setLocale(Locale(_selectedLangCode));
+    }
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,17 +44,15 @@ class _LanguageScreenState extends State<LanguageScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Language",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+        title: Text(
+          "language_title".tr(),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 20),
-
-            // أيقونة الترجمة العصرية
             Center(
               child: Container(
                 padding: const EdgeInsets.all(25),
@@ -50,21 +63,17 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 child: const Icon(Icons.translate_rounded, color: dropRed, size: 50),
               ),
             ),
-
             const SizedBox(height: 30),
-            const Text(
-              "Choose your language",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            Text(
+              "choose_language".tr(),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 10),
             Text(
-              "Select the language you prefer to use",
+              "select_preferred_language".tr(),
               style: TextStyle(color: Colors.grey[500], fontSize: 14),
             ),
-
             const SizedBox(height: 40),
-
-            // قائمة اللغات
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -85,13 +94,15 @@ class _LanguageScreenState extends State<LanguageScreen> {
                           color: isSelected ? dropRed : Colors.grey.shade100,
                           width: 2,
                         ),
-                        boxShadow: isSelected ? [
-                          BoxShadow(
-                            color: dropRed.withOpacity(0.1),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          )
-                        ] : [],
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: dropRed.withOpacity(0.1),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                )
+                              ]
+                            : [],
                       ),
                       child: Row(
                         children: [
@@ -125,24 +136,22 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 },
               ),
             ),
-
-            // زر الحفظ الثابت في الأسفل
             Padding(
               padding: const EdgeInsets.all(25),
               child: SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _saveLanguage,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: dropRed,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     elevation: 5,
                     shadowColor: dropRed.withOpacity(0.3),
                   ),
-                  child: const Text(
-                    "SAVE CHANGES",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  child: Text(
+                    "save_changes".tr(),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ),
