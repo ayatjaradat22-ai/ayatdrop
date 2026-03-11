@@ -11,6 +11,7 @@ import 'saved_addresses.dart';
 import 'FAQ.dart';
 import 'contactus.dart';
 import 'store_home.dart';
+import 'saved_stores.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -66,6 +67,10 @@ class _AccountScreenState extends State<AccountScreen> {
                 // زر لوحة تحكم المتجر (يظهر فقط إذا كان المستخدم متجراً)
                 if (role == 'store')
                   _buildStoreDashboardCard(),
+
+                _buildActionCard("saved_offers".tr(), Icons.favorite_rounded, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedStoresScreen()));
+                }),
 
                 _buildActionCard("order_history".tr(), Icons.history, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderHistoryScreen()));

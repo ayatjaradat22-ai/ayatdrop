@@ -13,6 +13,7 @@ class AiGuideScreen extends StatefulWidget {
 
 class _AiGuideScreenState extends State<AiGuideScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   User? get currentUser => FirebaseAuth.instance.currentUser;
   bool _isTyping = false;
 
@@ -23,11 +24,17 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
   @override
   void initState() {
     super.initState();
-    // استخدام flash-1.5 مع API Key الحالي
     _model = GenerativeModel(
       model: 'gemini-1.5-flash',
       apiKey: 'AIzaSyBPDzMixexTwMF7UYX_clJjSmTkCRoWodQ',
     );
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _sendMessage(String text) async {
@@ -66,19 +73,12 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
     } catch (e) {
       debugPrint("Detailed Gemini Error: $e");
       
-      String errorMsg = e.toString();
-      if (errorMsg.contains("API key not valid")) {
-        errorMsg = "API Key is invalid. Please check Google AI Studio.";
-      } else if (errorMsg.contains("location not supported")) {
-        errorMsg = "Gemini is not supported in your current region/VPN.";
-      }
-
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(currentUser!.uid)
           .collection('messages')
           .add({
-        'text': "DEBUG V4 ERROR: $errorMsg", 
+        'text': "DEBUG V5 ERROR: $e", 
         'sender': 'ai',
         'timestamp': FieldValue.serverTimestamp(),
       });
@@ -104,7 +104,7 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
               child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
-            Text("${"ai_title".tr()} V4",
+            Text("ai_title".tr(),
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 20)),
           ],
         ),
@@ -122,8 +122,14 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: dropRed));
                 final docs = snapshot.data!.docs;
+                
+                if (docs.isEmpty) {
+                  return _buildWelcomeState();
+                }
+
                 return ListView.builder(
                   reverse: true,
+                  controller: _scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
@@ -135,8 +141,52 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
             ),
           ),
           if (_isTyping) _buildTypingIndicator(),
+          _buildSuggestionsRow(),
           _buildMessageInput(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.chat_bubble_outline_rounded, size: 80, color: Colors.grey.shade200),
+          const SizedBox(height: 15),
+          Text("ai_no_messages".tr(), style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionsRow() {
+    final List<String> suggestions = [
+      "ai_sugg_budget".tr(),
+      "ai_sugg_coffee".tr(),
+      "ai_sugg_nearby".tr(),
+    ];
+
+    return Container(
+      height: 45,
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        itemCount: suggestions.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: ActionChip(
+              label: Text(suggestions[index], style: const TextStyle(fontSize: 13, color: Colors.black87)),
+              backgroundColor: Colors.grey.shade100,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              side: BorderSide(color: Colors.grey.shade200),
+              onPressed: () => _sendMessage(suggestions[index]),
+            ),
+          );
+        },
       ),
     );
   }

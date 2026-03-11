@@ -23,7 +23,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   DateTime? subscriptionExpiry;
   
   String? _editingDealId;
-  int _selectedHours = 24;
+  DateTime _selectedExpiry = DateTime.now().add(const Duration(hours: 24));
 
   static const Color dropRed = Color(0xFFFF0000);
   static const Color scaffoldBg = Color(0xFFF9F6F2);
@@ -55,6 +55,58 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     _percentController.dispose();
     _productController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickExpiry() async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedExpiry,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: dropRed,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_selectedExpiry),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: dropRed,
+                onPrimary: Colors.white,
+                onSurface: Colors.black,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          _selectedExpiry = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      }
+    }
   }
 
   @override
@@ -138,25 +190,31 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Widget _buildDurationPicker() {
-    final List<int> hours = [24, 48, 72, 168];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: hours.map((h) {
-        bool isSel = _selectedHours == h;
-        return GestureDetector(
-          onTap: () => setState(() => _selectedHours = h),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            decoration: BoxDecoration(
-              color: isSel ? dropRed : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: isSel ? dropRed : Colors.grey.shade300),
+    String formattedDate = DateFormat('yyyy/MM/dd - HH:mm').format(_selectedExpiry);
+    return GestureDetector(
+      onTap: _pickExpiry,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("expiry_time_label".tr(), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                const SizedBox(height: 4),
+                Text(formattedDate, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
             ),
-            child: Text(h < 168 ? "$h ${"hours_short".tr()}" : "1 ${"week_short".tr()}", 
-                style: TextStyle(color: isSel ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
-          ),
-        );
-      }).toList(),
+            const Icon(Icons.alarm_on_rounded, color: dropRed, size: 28),
+          ],
+        ),
+      ),
     );
   }
 
@@ -173,8 +231,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
         
         final docs = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          // الفلترة: يظهر العرض إذا كان storeId يطابقني، أو storeName يطابق اسمي الحالي، 
-          // أو إذا كان يحمل الاسم التجريبي القديم (للسماح بالتنظيف).
           return data['storeId'] == user.uid || 
                  data['storeName'] == storeName || 
                  data['storeName'] == "اسم المتجر التجريبي";
@@ -273,15 +329,13 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     final user = FirebaseAuth.instance.currentUser;
     if (_percentController.text.isEmpty || _productController.text.isEmpty || user == null) return;
 
-    DateTime expiryDate = DateTime.now().add(Duration(hours: _selectedHours));
-
     final dealData = {
       'discount': _percentController.text,
       'product': _productController.text,
       'category': storeCategory,
       'storeName': storeName,
       'storeId': user.uid,
-      'expiryTime': Timestamp.fromDate(expiryDate),
+      'expiryTime': Timestamp.fromDate(_selectedExpiry),
       'createdAt': FieldValue.serverTimestamp(),
     };
 
@@ -306,6 +360,9 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       _editingDealId = id;
       _percentController.text = data['discount'] ?? "";
       _productController.text = data['product'] ?? "";
+      if (data['expiryTime'] != null) {
+        _selectedExpiry = (data['expiryTime'] as Timestamp).toDate();
+      }
       _tabController.animateTo(0);
     });
   }

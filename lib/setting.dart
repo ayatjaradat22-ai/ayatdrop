@@ -7,6 +7,7 @@ import 'drop.dart';
 import 'aboutapp.dart';
 import 'premium.dart';
 import 'saved_stores.dart';
+import 'FAQ.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -42,7 +43,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildPremiumCard(context),
             const SizedBox(height: 30),
             _buildSectionHeader("account_settings_section".tr()),
-            _buildModernTile(Icons.person_outline_rounded, "personal_account".tr(), () {}),
+            _buildModernTile(Icons.person_outline_rounded, "personal_account".tr(), () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
+            }),
             _buildModernTile(Icons.edit_outlined, "edit_profile".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
             }),
@@ -57,10 +60,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildModernTile(Icons.language_rounded, "app_language".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen()));
             }),
-            _buildModernTile(Icons.notifications_none_rounded, "notifications".tr(), () {}),
+            _buildModernTile(Icons.notifications_none_rounded, "notifications".tr(), () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("notifications_coming_soon".tr()), backgroundColor: dropRed),
+              );
+            }),
             const SizedBox(height: 25),
             _buildSectionHeader("support_section".tr()),
-            _buildModernTile(Icons.help_outline_rounded, "help_center".tr(), () {}),
+            _buildModernTile(Icons.help_outline_rounded, "help_center".tr(), () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const FAQScreen()));
+            }),
             _buildModernTile(Icons.info_outline_rounded, "about_drop".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutAppScreen()));
             }),

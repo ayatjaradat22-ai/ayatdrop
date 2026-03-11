@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AboutAppScreen extends StatelessWidget {
   const AboutAppScreen({super.key});
@@ -18,9 +19,9 @@ class AboutAppScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Our Story",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+        title: Text(
+          "our_story".tr(),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
@@ -29,14 +30,14 @@ class AboutAppScreen extends StatelessWidget {
             .doc('about')
             .snapshots(),
         builder: (context, snapshot) {
-          String aboutText = "Drop is your ultimate destination for exclusive deals and discounts across Jordan. We bridge the gap between shoppers and their favorite stores.";
-          String version = "1.0.0";
-          String problemsSolved = "• High costs of living\n• Difficulty finding valid coupons\n• Missing out on limited-time offers";
+          String aboutText = "about_app_desc_fallback".tr();
+          String versionNum = "1.0.0";
+          String problemsSolved = "problems_solved_fallback".tr();
 
           if (snapshot.hasData && snapshot.data!.exists) {
             var data = snapshot.data!;
             aboutText = data['about_text'] ?? aboutText;
-            version = data['version'] ?? version;
+            versionNum = data['version'] ?? versionNum;
             problemsSolved = data['problems_solved'] ?? problemsSolved;
           }
 
@@ -47,7 +48,6 @@ class AboutAppScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 30),
 
-                // لوغو التطبيق بتصميم عصري (3D effect)
                 _buildModernLogo(),
 
                 const SizedBox(height: 15),
@@ -56,25 +56,23 @@ class AboutAppScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 2),
                 ),
                 Text(
-                  "Version $version",
+                  "${"version".tr()} $versionNum",
                   style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold, fontSize: 12),
                 ),
 
                 const SizedBox(height: 40),
 
-                // أقسام المعلومات
-                _buildModernInfoSection("Vision & Mission", aboutText, Icons.auto_awesome_rounded),
-                _buildModernInfoSection("Why Drop?", problemsSolved, Icons.verified_rounded),
+                _buildModernInfoSection("vision_mission".tr(), aboutText, Icons.auto_awesome_rounded),
+                _buildModernInfoSection("why_drop".tr(), problemsSolved, Icons.verified_rounded),
 
                 const SizedBox(height: 40),
 
-                // قسم المطورين (Signature Section)
                 _buildDeveloperCard(["Ayat Jaradat", "Aya Shnnaq"]),
 
                 const SizedBox(height: 40),
-                const Text(
-                  "Made with ❤️ in Jordan",
-                  style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
+                Text(
+                  "made_with_love".tr(),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 30),
               ],
@@ -157,9 +155,9 @@ class AboutAppScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Text(
-            "DEVELOPED BY",
-            style: TextStyle(
+          Text(
+            "developed_by".tr().toUpperCase(),
+            style: const TextStyle(
               color: Colors.white54,
               fontSize: 11,
               fontWeight: FontWeight.w900,

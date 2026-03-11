@@ -22,7 +22,6 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // الحل: تثبيت اتجاه الخريطة ليكون LTR دائماً لمنع الاختفاء عند تغيير اللغة للعربية
           Directionality(
             textDirection: ui.TextDirection.ltr,
             child: StreamBuilder<QuerySnapshot>(
@@ -31,8 +30,9 @@ class _MapScreenState extends State<MapScreen> {
                 List<Marker> markers = [];
                 if (snapshot.hasData) {
                   for (var doc in snapshot.data!.docs) {
-                    double lat = doc.get('lat') ?? 31.9539 + (snapshot.data!.docs.indexOf(doc) * 0.005);
-                    double lng = doc.get('lng') ?? 35.9106 + (snapshot.data!.docs.indexOf(doc) * 0.005);
+                    final data = doc.data() as Map<String, dynamic>? ?? {};
+                    double lat = data['lat'] ?? 31.9539 + (snapshot.data!.docs.indexOf(doc) * 0.002);
+                    double lng = data['lng'] ?? 35.9106 + (snapshot.data!.docs.indexOf(doc) * 0.002);
                     
                     markers.add(
                       Marker(
@@ -137,7 +137,13 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildStoreCard(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>? ?? {};
+    
+    // منع ظهور NULL بتوفير قيم افتراضية
+    String productName = data['product']?.toString() ?? "منتج مميز";
+    String storeName = data['storeName']?.toString() ?? "متجر شريك";
+    String discount = data['discount']?.toString() ?? "خصم خاص";
+
     return GestureDetector(
       onTap: () {
         double lat = data['lat'] ?? 31.9539;
@@ -172,10 +178,23 @@ class _MapScreenState extends State<MapScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(data['product'] ?? "Product", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text("${data['discount'] ?? "0%"} " + "off_text".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
+                    Text(
+                      productName, 
+                      maxLines: 1, 
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                    ),
+                    Text(
+                      "$discount " + "off_text".tr(), 
+                      style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)
+                    ),
                     const SizedBox(height: 5),
-                    Text(data['storeName'] ?? "Store", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      storeName, 
+                      maxLines: 1, 
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)
+                    ),
                   ],
                 ),
               ),
