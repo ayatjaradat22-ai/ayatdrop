@@ -7,6 +7,10 @@ import 'order_history.dart';
 import 'payment_methods.dart';
 import 'edit_profile.dart';
 import 'drop.dart';
+import 'saved_addresses.dart';
+import 'FAQ.dart';
+import 'contactus.dart';
+import 'store_home.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -35,9 +39,12 @@ class _AccountScreenState extends State<AccountScreen> {
         builder: (context, snapshot) {
           String name = "loading".tr();
           String email = user?.email ?? "no_email".tr();
+          String role = "user"; // الرتبة الافتراضية
 
           if (snapshot.hasData && snapshot.data!.exists) {
-            name = snapshot.data!.get('name') ?? "no_name".tr();
+            var data = snapshot.data!.data() as Map<String, dynamic>;
+            name = data['name'] ?? "no_name".tr();
+            role = data['role'] ?? "user";
           }
 
           return SingleChildScrollView(
@@ -56,12 +63,28 @@ class _AccountScreenState extends State<AccountScreen> {
 
                 const SizedBox(height: 20),
 
+                // زر لوحة تحكم المتجر (يظهر فقط إذا كان المستخدم متجراً)
+                if (role == 'store')
+                  _buildStoreDashboardCard(),
+
                 _buildActionCard("order_history".tr(), Icons.history, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderHistoryScreen()));
                 }),
 
                 _buildActionCard("payment_methods".tr(), Icons.payment, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentMethodsScreen()));
+                }),
+
+                _buildActionCard("saved_addresses".tr(), Icons.location_on_outlined, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedAddressesScreen()));
+                }),
+
+                _buildActionCard("faq_title".tr(), Icons.help_outline, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const FAQScreen()));
+                }),
+
+                _buildActionCard("contact_us".tr(), Icons.headset_mic_outlined, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ContactUsScreen()));
                 }),
 
                 _buildActionCard("settings".tr(), Icons.settings_outlined, () {
@@ -97,6 +120,30 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           );
         }
+      ),
+    );
+  }
+
+  // ويدجت مميز للوحة تحكم المتجر
+  Widget _buildStoreDashboardCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Colors.black87, Colors.black]),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+      ),
+      child: ListTile(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreHomeScreen())),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: dropRed, borderRadius: BorderRadius.circular(12)),
+          child: const Icon(Icons.dashboard_customize_rounded, color: Colors.white, size: 24),
+        ),
+        title: Text("store_dashboard".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        subtitle: Text("manage_deals_and_subs".tr(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
       ),
     );
   }

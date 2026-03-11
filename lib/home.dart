@@ -56,11 +56,17 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 }
 
-class HomeScreenContent extends StatelessWidget {
+class HomeScreenContent extends StatefulWidget {
   const HomeScreenContent({super.key});
 
+  @override
+  State<HomeScreenContent> createState() => _HomeScreenContentState();
+}
+
+class _HomeScreenContentState extends State<HomeScreenContent> {
   static const Color dropRed = Color(0xFFFF1111);
   static const Color lightGreen = Color(0xFFF1F8E9);
+  String? _selectedCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -71,14 +77,16 @@ class HomeScreenContent extends StatelessWidget {
           const SizedBox(height: 20),
           _buildExploreButton(),
           const SizedBox(height: 25),
-          _buildSectionTitle("popular_categories".tr()),
+          _buildSectionTitle(_selectedCategory == null ? "popular_categories".tr() : "cat_filtered_title".tr(args: [_selectedCategory!.tr()])),
           const SizedBox(height: 15),
           _buildCategoriesRow(),
           const SizedBox(height: 30),
-          _buildSectionTitle("savings_summary".tr()),
-          const SizedBox(height: 10),
-          _buildSavingsCard(),
-          const SizedBox(height: 30),
+          if (_selectedCategory == null) ...[
+            _buildSectionTitle("savings_summary".tr()),
+            const SizedBox(height: 10),
+            _buildSavingsCard(),
+            const SizedBox(height: 30),
+          ],
           _buildSectionTitle("trending_deals".tr()),
           const SizedBox(height: 20),
           _buildDealsList(),
@@ -90,7 +98,6 @@ class HomeScreenContent extends StatelessWidget {
 
   Widget _buildHeader() {
     User? user = FirebaseAuth.instance.currentUser;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 40),
@@ -136,6 +143,7 @@ class HomeScreenContent extends StatelessWidget {
   }
 
   Widget _buildDealsList() {
+    // جلب كل العروض ثم الفلترة في الـ UI لضمان ظهور العروض القديمة التي لا تحتوي على حقل فئة
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('deals').orderBy('createdAt', descending: true).snapshots(),
       builder: (context, snapshot) {
@@ -146,13 +154,38 @@ class HomeScreenContent extends StatelessWidget {
           return _buildEmptyState();
         }
 
+        // منطق الفلترة الذكي
+        final filteredDocs = snapshot.data!.docs.where((doc) {
+          if (_selectedCategory == null) return true;
+          
+          final data = doc.data() as Map<String, dynamic>;
+          final category = data['category']?.toString();
+          final productName = data['product']?.toString().toLowerCase() ?? "";
+          final storeName = data['storeName']?.toString().toLowerCase() ?? "";
+
+          // 1. فحص حقل الفئة المباشر
+          if (category == _selectedCategory) return true;
+
+          // 2. استنتاج ذكي للعروض القديمة بناءً على كلمات دلالية
+          if (_selectedCategory == 'cat_cafes') {
+            return productName.contains('قهوة') || productName.contains('coffee') || 
+                   productName.contains('moca') || storeName.contains('كافيه') || storeName.contains('ايات');
+          }
+          if (_selectedCategory == 'cat_food') {
+            return productName.contains('اكل') || productName.contains('وجبة') || productName.contains('burger');
+          }
+
+          return false;
+        }).toList();
+
+        if (filteredDocs.isEmpty) return _buildEmptyState();
+
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: snapshot.data!.docs.length,
+          itemCount: filteredDocs.length,
           itemBuilder: (context, index) {
-            var deal = snapshot.data!.docs[index];
-            return _buildDealCard(deal);
+            return _buildDealCard(filteredDocs[index]);
           },
         );
       },
@@ -161,6 +194,22 @@ class HomeScreenContent extends StatelessWidget {
 
   Widget _buildDealCard(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    String? category = data['category']?.toString();
+    final productName = data['product']?.toString().toLowerCase() ?? "";
+    final storeName = data['storeName']?.toString().toLowerCase() ?? "";
+
+    // تحديد الأيقونة تلقائياً للعروض القديمة
+    IconData categoryIcon = Icons.local_offer_rounded;
+    if (category == 'cat_food' || productName.contains('burger')) {
+      categoryIcon = Icons.restaurant_rounded;
+    } else if (category == 'cat_cafes' || productName.contains('moca') || storeName.contains('كافيه') || storeName.contains('ايات')) {
+      categoryIcon = Icons.local_cafe_rounded;
+    } else if (category == 'cat_fashion') {
+      categoryIcon = Icons.shopping_bag_rounded;
+    } else if (category == 'cat_tech') {
+      categoryIcon = Icons.devices_rounded;
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       padding: const EdgeInsets.all(15),
@@ -174,7 +223,7 @@ class HomeScreenContent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: dropRed.withOpacity(0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.local_offer, color: dropRed),
+            child: Icon(categoryIcon, color: dropRed),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -229,11 +278,42 @@ class HomeScreenContent extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        CategoryIconItem(icon: Icons.restaurant, label: "cat_food".tr()),
-        CategoryIconItem(icon: Icons.shopping_bag, label: "cat_fashion".tr()),
-        CategoryIconItem(icon: Icons.local_cafe, label: "cat_cafes".tr()),
-        CategoryIconItem(icon: Icons.devices, label: "cat_tech".tr()),
+        _buildCategoryItem(Icons.restaurant, "cat_food"),
+        _buildCategoryItem(Icons.shopping_bag, "cat_fashion"),
+        _buildCategoryItem(Icons.local_cafe, "cat_cafes"),
+        _buildCategoryItem(Icons.devices, "cat_tech"),
       ],
+    );
+  }
+
+  Widget _buildCategoryItem(IconData icon, String categoryKey) {
+    bool isSelected = _selectedCategory == categoryKey;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (_selectedCategory == categoryKey) {
+            _selectedCategory = null; 
+          } else {
+            _selectedCategory = categoryKey;
+          }
+        });
+      },
+      child: Column(
+        children: [
+          Material(
+            elevation: isSelected ? 10 : 5,
+            shape: const CircleBorder(),
+            shadowColor: isSelected ? dropRed : Colors.black26,
+            child: CircleAvatar(
+              radius: 28,
+              backgroundColor: isSelected ? dropRed : Colors.white,
+              child: Icon(icon, color: isSelected ? Colors.white : dropRed, size: 28),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(categoryKey.tr(), style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? dropRed : Colors.black)),
+        ],
+      ),
     );
   }
 
@@ -262,32 +342,6 @@ class HomeScreenContent extends StatelessWidget {
           )
         ],
       ),
-    );
-  }
-}
-
-class CategoryIconItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const CategoryIconItem({super.key, required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Material(
-          elevation: 5,
-          shape: const CircleBorder(),
-          shadowColor: Colors.black26,
-          child: CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.white,
-            child: Icon(icon, color: const Color(0xFFFF1111), size: 28),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-      ],
     );
   }
 }

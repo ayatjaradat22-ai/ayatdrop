@@ -6,6 +6,7 @@ import 'forgot_password.dart';
 import 'signup.dart';
 import 'home.dart';
 import 'store.dart';
+import 'store_login.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,9 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (!mounted) return;
-      Navigator.of(context).pop(); // إغلاق التحميل
+      Navigator.of(context).pop();
 
-      // التوجيه للـ MainWrapper الجديد
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const MainWrapper()),
@@ -58,6 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         children: [
           Positioned.fill(child: Image.asset("images/sign_in_screan.png", fit: BoxFit.cover)),
+          
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -109,6 +110,26 @@ class _LoginScreenState extends State<LoginScreen> {
                                       Text("signup_prompt".tr() + " "),
                                       Text("signup_action".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
                                     ],
+                                  ),
+                                ),
+                                const SizedBox(height: 25),
+                                // أيقونة المتجر الحمراء تحت جملة إنشاء الحساب
+                                GestureDetector(
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreLoginScreen())),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.8),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(Icons.storefront_rounded, color: dropRed, size: 30),
                                   ),
                                 ),
                               ],

@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.0.0
 
 dependencies:
   flutter:
@@ -15,11 +15,12 @@ dependencies:
   firebase_auth: ^5.1.1
   cloud_firestore: ^5.0.2
   firebase_messaging: ^15.0.3
+  flutter_local_notifications: ^17.1.2
   easy_localization: ^3.0.3
   url_launcher: ^6.2.1
   flutter_map: ^6.1.0
   latlong2: ^0.9.1
-  google_generative_ai: ^0.4.5
+  google_generative_ai: ^0.4.7
 
 dev_dependencies:
   flutter_test:

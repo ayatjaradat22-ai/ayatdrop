@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
-// تأكدي من تعديل الـ imports لتناسب أسماء الملفات في مشروعك الجديد ayatdrop
-// import 'package:ayatdrop/store_home.dart';
-// import 'package:ayatdrop/forgot_password.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'store_signup.dart';
 
 class StoreLoginScreen extends StatefulWidget {
   const StoreLoginScreen({super.key});
@@ -16,9 +14,7 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // اللون الأحمر الصارخ (Vibrant Red)
   static const Color dropRed = Color(0xFFFF0000);
-  // لون الخلفية الكريمي من صور الستور
   static const Color scaffoldBg = Color(0xFFF9F6F2);
 
   @override
@@ -40,57 +36,41 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              // أيقونة المتجر (مطابقة للصورة)
               const Icon(Icons.store_rounded, size: 80, color: dropRed),
               const SizedBox(height: 15),
-              const Text(
-                "Store Login",
-                style: TextStyle(
+              Text(
+                "store_login_title".tr(),
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: dropRed,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                "Welcome back! Login to your store account",
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+              Text(
+                "store_login_subtitle".tr(),
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
               ),
 
               const SizedBox(height: 50),
 
-              // حقول الإدخال بتصميم الصور
               _buildStoreInputField(
                 controller: emailController,
-                hint: "Store Email",
+                hint: "store_email_hint".tr(),
                 icon: Icons.email_outlined,
               ),
               const SizedBox(height: 20),
               _buildStoreInputField(
                 controller: passwordController,
-                hint: "Password",
+                hint: "password_hint".tr(),
                 icon: Icons.lock_outline,
                 isPassword: true,
                 isVisible: _isPasswordVisible,
                 onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
               ),
 
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()));
-                  },
-                  child: const Text(
-                      "Forgot Password?",
-                      style: TextStyle(color: dropRed, fontSize: 12, fontWeight: FontWeight.w600)
-                  ),
-                ),
-              ),
-
               const SizedBox(height: 25),
 
-              // زر الدخول (الأحمر الصارخ)
               SizedBox(
                 width: double.infinity,
                 height: 55,
@@ -98,38 +78,32 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: dropRed,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    elevation: 4,
-                    shadowColor: dropRed.withOpacity(0.3),
                   ),
                   onPressed: () {
-                    // Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreHomeScreen()));
+                    // Login logic
                   },
-                  child: const Text(
-                      "Login",
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                  child: Text(
+                    "login_button".tr(),
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
                   ),
                 ),
               ),
 
               const SizedBox(height: 40),
 
-              // قسم تسجيل الدخول عبر السوشيال ميديا كما في الصورة
-              const Text(
-                "Or login with",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _socialIcon(Icons.g_mobiledata, Colors.red), // يمكنك استبدالها بصور assets لاحقاً
-                  const SizedBox(width: 20),
-                  _socialIcon(Icons.apple, Colors.black),
-                  const SizedBox(width: 20),
-                  _socialIcon(Icons.facebook, Colors.blue),
+                  Text("no_store_account".tr(), style: const TextStyle(color: Colors.grey)),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreSignUpScreen())),
+                    child: Text(
+                      " " + "signup_action".tr(),
+                      style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 30),
             ],
           ),
         ),
@@ -137,7 +111,6 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
     );
   }
 
-  // ويدجت الحقول (أبيض مع ظل)
   Widget _buildStoreInputField({
     required TextEditingController controller,
     required String hint,
@@ -174,25 +147,6 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         ),
       ),
-    );
-  }
-
-  // ويدجت أيقونات السوشيال ميديا الدائرية
-  Widget _socialIcon(IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Icon(icon, size: 30, color: color),
     );
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'dart:ui';
+import 'package:easy_localization/easy_localization.dart';
 
 class AiGuideScreen extends StatefulWidget {
   const AiGuideScreen({super.key});
@@ -13,24 +13,23 @@ class AiGuideScreen extends StatefulWidget {
 
 class _AiGuideScreenState extends State<AiGuideScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
   User? get currentUser => FirebaseAuth.instance.currentUser;
   bool _isTyping = false;
 
-  static const Color dropRed = Color(0xFFFF1111); // الأحمر الصح
+  static const Color dropRed = Color(0xFFFF1111);
 
   late final GenerativeModel _model;
 
   @override
   void initState() {
     super.initState();
+    // استخدام flash-1.5 مع API Key الحالي
     _model = GenerativeModel(
       model: 'gemini-1.5-flash',
-      apiKey: 'ضعي_مفتاحك_هنا',
+      apiKey: 'AIzaSyBPDzMixexTwMF7UYX_clJjSmTkCRoWodQ',
     );
   }
 
-  // دالة إرسال الرسالة ومعالجة الرد (نفس المنطق السابق مع تحسين التخزين)
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty || currentUser == null) return;
 
@@ -50,20 +49,39 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
     setState(() => _isTyping = true);
 
     try {
-      final content = [Content.text("أنت 'Drop AI'، مساعد ذكي لتطبيق Drop للخصومات. أجب باللهجة الأردنية اللطيفة. سؤال المستخدم: $userMessage")];
+      final content = [Content.text("ai_prompt_prefix".tr() + " " + userMessage)];
       final response = await _model.generateContent(content);
+
+      if (response.text != null) {
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(currentUser!.uid)
+            .collection('messages')
+            .add({
+          'text': response.text!,
+          'sender': 'ai',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      debugPrint("Detailed Gemini Error: $e");
+      
+      String errorMsg = e.toString();
+      if (errorMsg.contains("API key not valid")) {
+        errorMsg = "API Key is invalid. Please check Google AI Studio.";
+      } else if (errorMsg.contains("location not supported")) {
+        errorMsg = "Gemini is not supported in your current region/VPN.";
+      }
 
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(currentUser!.uid)
           .collection('messages')
           .add({
-        'text': response.text ?? "أنا معك، كيف بقدر أساعدك؟",
+        'text': "DEBUG V4 ERROR: $errorMsg", 
         'sender': 'ai',
         'timestamp': FieldValue.serverTimestamp(),
       });
-    } catch (e) {
-      print(e);
     } finally {
       if (mounted) setState(() => _isTyping = false);
     }
@@ -72,12 +90,11 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // خلفية بيضاء نظيفة
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.8),
+        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        flexibleSpace: ClipRect(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), child: Container(color: Colors.transparent))),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -87,7 +104,8 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
               child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
-            const Text("Drop AI", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 20)),
+            Text("${"ai_title".tr()} V4",
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 20)),
           ],
         ),
       ),
@@ -138,19 +156,8 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
             bottomLeft: Radius.circular(isUser ? 20 : 5),
             bottomRight: Radius.circular(isUser ? 5 : 20),
           ),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))
-          ],
         ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isUser ? Colors.white : Colors.black87,
-            fontSize: 16,
-            height: 1.4,
-            fontWeight: isUser ? FontWeight.w500 : FontWeight.normal,
-          ),
-        ),
+        child: Text(text, style: TextStyle(color: isUser ? Colors.white : Colors.black87, fontSize: 16)),
       ),
     );
   }
@@ -159,33 +166,22 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       alignment: Alignment.centerLeft,
-      child: Text("Drop AI بتفكرلك بأحسن عرض...",
-          style: TextStyle(fontSize: 13, color: Colors.grey[500], fontStyle: FontStyle.italic)),
+      child: Text("ai_typing_indicator".tr(), style: TextStyle(fontSize: 13, color: Colors.grey[500], fontStyle: FontStyle.italic)),
     );
   }
 
   Widget _buildMessageInput() {
     return Container(
-      padding: EdgeInsets.only(left: 20, right: 20, bottom: MediaQuery.of(context).padding.bottom + 10, top: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.1))),
-      ),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.grey.shade100))),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(30),
-              ),
+              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(30)),
               child: TextField(
                 controller: _messageController,
-                decoration: const InputDecoration(
-                  hintText: "اسأل Drop AI...",
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
+                decoration: InputDecoration(hintText: "ai_input_hint".tr(), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
               ),
             ),
           ),

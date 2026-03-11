@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:ui';
+import 'package:easy_localization/easy_localization.dart';
+import 'dart:ui' as ui;
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -21,53 +22,52 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. الخريطة مع جلب العلامات من Firestore
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('deals').snapshots(),
-            builder: (context, snapshot) {
-              List<Marker> markers = [];
-              if (snapshot.hasData) {
-                for (var doc in snapshot.data!.docs) {
-                  // افتراضياً نضع مواقع قريبة من المركز للتجربة
-                  // في المستقبل، كل محل سيكون له latitude و longitude في الداتابيز
-                  double lat = doc.get('lat') ?? 31.9539 + (snapshot.data!.docs.indexOf(doc) * 0.005);
-                  double lng = doc.get('lng') ?? 35.9106 + (snapshot.data!.docs.indexOf(doc) * 0.005);
-                  
-                  markers.add(
-                    Marker(
-                      point: LatLng(lat, lng),
-                      width: 50,
-                      height: 50,
-                      child: GestureDetector(
-                        onTap: () => _mapController.move(LatLng(lat, lng), 15),
-                        child: const Icon(Icons.location_on, color: dropRed, size: 40),
+          // الحل: تثبيت اتجاه الخريطة ليكون LTR دائماً لمنع الاختفاء عند تغيير اللغة للعربية
+          Directionality(
+            textDirection: ui.TextDirection.ltr,
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('deals').snapshots(),
+              builder: (context, snapshot) {
+                List<Marker> markers = [];
+                if (snapshot.hasData) {
+                  for (var doc in snapshot.data!.docs) {
+                    double lat = doc.get('lat') ?? 31.9539 + (snapshot.data!.docs.indexOf(doc) * 0.005);
+                    double lng = doc.get('lng') ?? 35.9106 + (snapshot.data!.docs.indexOf(doc) * 0.005);
+                    
+                    markers.add(
+                      Marker(
+                        point: LatLng(lat, lng),
+                        width: 50,
+                        height: 50,
+                        child: GestureDetector(
+                          onTap: () => _mapController.move(LatLng(lat, lng), 15),
+                          child: const Icon(Icons.location_on, color: dropRed, size: 40),
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 }
-              }
 
-              return FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: _initialCenter,
-                  initialZoom: 13.0,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.example.drop',
+                return FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _initialCenter,
+                    initialZoom: 13.0,
                   ),
-                  MarkerLayer(markers: markers),
-                ],
-              );
-            },
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.drop',
+                    ),
+                    MarkerLayer(markers: markers),
+                  ],
+                );
+              },
+            ),
           ),
-
-          // 2. شريط البحث العلوي
+          
           _buildTopSearch(),
-
-          // 3. قائمة المحلات القريبة من Firestore
+          
           Positioned(
             bottom: 20,
             left: 0,
@@ -105,7 +105,7 @@ class _MapScreenState extends State<MapScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15),
               height: 55,
@@ -114,19 +114,19 @@ class _MapScreenState extends State<MapScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withOpacity(0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.search, color: Colors.grey),
-                  SizedBox(width: 10),
+                  const Icon(Icons.search, color: Colors.grey),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       decoration: InputDecoration(
-                        hintText: "Search for deals nearby...",
+                        hintText: "search_nearby_hint".tr(),
                         border: InputBorder.none,
                       ),
                     ),
                   ),
-                  Icon(Icons.filter_list, color: dropRed),
+                  const Icon(Icons.filter_list, color: dropRed),
                 ],
               ),
             ),
@@ -140,7 +140,6 @@ class _MapScreenState extends State<MapScreen> {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return GestureDetector(
       onTap: () {
-        // تحريك الخريطة لموقع المحل عند الضغط على بطاقته
         double lat = data['lat'] ?? 31.9539;
         double lng = data['lng'] ?? 35.9106;
         _mapController.move(LatLng(lat, lng), 15);
@@ -173,8 +172,8 @@ class _MapScreenState extends State<MapScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(data['product'] ?? "Deal Name", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text("${data['discount'] ?? "0%"} Off", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
+                    Text(data['product'] ?? "Product", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text("${data['discount'] ?? "0%"} " + "off_text".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
                     Text(data['storeName'] ?? "Store", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
