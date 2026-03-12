@@ -15,12 +15,12 @@ class FAQScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: dropRed, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "faq_title".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+          style: const TextStyle(color: dropRed, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: ListView(
@@ -48,16 +48,16 @@ class FAQScreen extends StatelessWidget {
         shape: const RoundedRectangleBorder(side: BorderSide.none),
         title: Text(
           question,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: dropRed),
         ),
         iconColor: dropRed,
-        collapsedIconColor: Colors.grey,
+        collapsedIconColor: dropRed.withOpacity(0.5),
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
             child: Text(
               answer,
-              style: TextStyle(color: Colors.grey[600], fontSize: 14, height: 1.5),
+              style: TextStyle(color: Colors.grey[700], fontSize: 14, height: 1.5),
             ),
           ),
         ],

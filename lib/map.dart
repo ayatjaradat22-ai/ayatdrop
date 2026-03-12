@@ -116,7 +116,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: Colors.grey),
+                  const Icon(Icons.search, color: dropRed), // Changed from grey
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
@@ -139,10 +139,9 @@ class _MapScreenState extends State<MapScreen> {
   Widget _buildStoreCard(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>? ?? {};
     
-    // منع ظهور NULL بتوفير قيم افتراضية
-    String productName = data['product']?.toString() ?? "منتج مميز";
-    String storeName = data['storeName']?.toString() ?? "متجر شريك";
-    String discount = data['discount']?.toString() ?? "خصم خاص";
+    String productName = data['product']?.toString() ?? "منتج مميز".tr(); // Added .tr()
+    String storeName = data['storeName']?.toString() ?? "متجر شريك".tr(); // Added .tr()
+    String discount = data['discount']?.toString() ?? "خصم خاص".tr(); // Added .tr()
 
     return GestureDetector(
       onTap: () {
@@ -157,7 +156,7 @@ class _MapScreenState extends State<MapScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
+            BoxShadow(color: dropRed.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
           ],
         ),
         child: Row(
@@ -182,7 +181,7 @@ class _MapScreenState extends State<MapScreen> {
                       productName, 
                       maxLines: 1, 
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: dropRed) // Changed color
                     ),
                     Text(
                       "$discount " + "off_text".tr(), 

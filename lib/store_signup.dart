@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart';
 import 'home.dart';
 
 class StoreSignUpScreen extends StatefulWidget {
@@ -14,10 +15,12 @@ class StoreSignUpScreen extends StatefulWidget {
 class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _isLocating = false;
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
+  final TextEditingController latController = TextEditingController(); 
+  final TextEditingController lngController = TextEditingController(); 
   final TextEditingController otherCategoryController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
@@ -26,8 +29,8 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
   final TextEditingController expiryDateController = TextEditingController();
   final TextEditingController cvvController = TextEditingController();
 
-  String? _primaryCategory; // الفئة الأولى (إجبارية)
-  String? _secondaryCategory; // الفئة الثانية (اختيارية)
+  String? _primaryCategory;
+  String? _secondaryCategory;
 
   final List<String> _categories = [
     'cat_food',
@@ -41,7 +44,40 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
   static const Color dropRed = Color(0xFFFF0000);
   static const Color scaffoldBg = Color(0xFFF9F6F2);
 
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        Position position = await Geolocator.getCurrentPosition();
+        setState(() {
+          latController.text = position.latitude.toString();
+          lngController.text = position.longitude.toString();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم تحديد موقعك بنجاح! 📍"), backgroundColor: Colors.green));
+      } else {
+        _showError("يجب إعطاء صلاحية الموقع لتحديد الإحداثيات تلقائياً.");
+      }
+    } catch (e) {
+      _showError("حدث خطأ أثناء تحديد الموقع: $e");
+    } finally {
+      setState(() => _isLocating = false);
+    }
+  }
+
   Future<void> _registerStore({bool isDevMode = false}) async {
+    double? lat = double.tryParse(latController.text.trim());
+    double? lng = double.tryParse(lngController.text.trim());
+
+    if (lat == null || lng == null || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      _showError("يرجى إدخال أو تحديد إحداثيات صحيحة");
+      return;
+    }
+
     if (passwordController.text != confirmPasswordController.text) {
       _showError("passwords_not_match".tr());
       return;
@@ -49,11 +85,6 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
 
     if (_primaryCategory == null) {
       _showError("يرجى اختيار التخصص الأساسي للمتجر!");
-      return;
-    }
-
-    if (!isDevMode && cardNumberController.text.length < 16) {
-      _showError("invalid_card".tr());
       return;
     }
 
@@ -82,17 +113,13 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
         }
       }
 
-      // تجهيز الفئات النهائية (معالجة خيار "أخرى")
       List<String> finalCategories = [];
-      
-      // معالجة الفئة الأساسية
       if (_primaryCategory == 'cat_other' && otherCategoryController.text.isNotEmpty) {
         finalCategories.add(otherCategoryController.text.trim());
       } else {
         finalCategories.add(_primaryCategory!);
       }
 
-      // معالجة الفئة الثانوية (اختيارية)
       if (_secondaryCategory != null) {
         if (_secondaryCategory == 'cat_other' && otherCategoryController.text.isNotEmpty) {
           String otherVal = otherCategoryController.text.trim();
@@ -107,7 +134,9 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': nameController.text.trim(),
         'email': emailController.text.trim(),
-        'location': locationController.text.trim(),
+        'lat': lat,
+        'lng': lng,
+        'location': "موقع مخصص على الخريطة",
         'categories': finalCategories,
         'role': 'store',
         'isSubscribed': true,
@@ -166,7 +195,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
             children: [
-              const Icon(Icons.add_business_rounded, size: 70, color: dropRed),
+              const Icon(Icons.add_location_alt_rounded, size: 70, color: dropRed),
               const SizedBox(height: 15),
               Text(
                 "store_signup_title".tr(),
@@ -184,7 +213,6 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
               _buildStoreInputField(controller: nameController, hint: "store_name_hint".tr(), icon: Icons.store_outlined),
               const SizedBox(height: 25),
               
-              // اختيار التخصص الأساسي (إجباري)
               Align(alignment: Alignment.centerRight, child: Text("التخصص الأساسي (إجباري)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
               const SizedBox(height: 10),
               Wrap(
@@ -198,7 +226,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
                     onSelected: (selected) {
                       setState(() {
                         _primaryCategory = selected ? cat : null;
-                        if (_secondaryCategory == cat) _secondaryCategory = null; // لا يمكن تكرار نفس التخصص
+                        if (_secondaryCategory == cat) _secondaryCategory = null;
                       });
                     },
                   );
@@ -207,7 +235,6 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
 
               const SizedBox(height: 20),
 
-              // اختيار التخصص الثانوي (اختياري)
               Align(alignment: Alignment.centerRight, child: Text("تخصص إضافي (اختياري)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey))),
               const SizedBox(height: 10),
               Wrap(
@@ -234,10 +261,28 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
                   child: _buildStoreInputField(controller: otherCategoryController, hint: "اكتب التخصص الآخر هنا...", icon: Icons.edit_note_rounded),
                 ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 25),
               _buildStoreInputField(controller: emailController, hint: "store_email_hint".tr(), icon: Icons.email_outlined),
-              const SizedBox(height: 15),
-              _buildStoreInputField(controller: locationController, hint: "store_location_hint".tr(), icon: Icons.map_outlined),
+              
+              const SizedBox(height: 25),
+              // قسم الإحداثيات مع زر "تحديد موقعي"
+              Row(
+                children: [
+                  Expanded(child: _buildStoreInputField(controller: latController, hint: "Latitude", icon: Icons.location_on, isNumber: true)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _buildStoreInputField(controller: lngController, hint: "Longitude", icon: Icons.location_on, isNumber: true)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _isLocating ? null : _getCurrentLocation,
+                  icon: _isLocating ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: dropRed)) : const Icon(Icons.my_location_rounded, color: dropRed),
+                  label: Text(_isLocating ? "جاري التحديد..." : "تحديد موقعي الحالي تلقائياً", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(backgroundColor: dropRed.withOpacity(0.05), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                ),
+              ),
               
               const Divider(height: 40),
               Align(alignment: Alignment.centerLeft, child: Text("payment_info".tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
@@ -310,7 +355,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
       child: TextField(
         controller: controller,
         obscureText: isPassword && !isVisible,
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
         decoration: InputDecoration(
           hintText: hint,
           prefixIcon: Icon(icon, color: dropRed.withOpacity(0.7), size: 20),

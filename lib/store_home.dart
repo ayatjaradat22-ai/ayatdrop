@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:geolocator/geolocator.dart';
 
 class StoreHomeScreen extends StatefulWidget {
   const StoreHomeScreen({super.key});
@@ -24,14 +25,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   String? _selectedDealCategory;
   String? storeName;
   DateTime? subscriptionExpiry;
+  DateTime? lastLocationUpdate;
   
   String? _editingDealId;
   DateTime _selectedExpiry = DateTime.now().add(const Duration(hours: 24));
 
   static const Color dropRed = Color(0xFFFF0000);
+  static const Color goldColor = Color(0xFFFFD700);
   static const Color scaffoldBg = Color(0xFFF9F6F2);
 
   bool _isPriceMode = true;
+  bool _isUpdatingLocation = false;
 
   @override
   void initState() {
@@ -47,23 +51,89 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         setState(() {
-          // محاولة جلب الفئات من الحقل الجديد أو القديم لضمان التوافق
           if (data.containsKey('categories')) {
             _storeCategories = List<String>.from(data['categories']);
           } else if (data.containsKey('category')) {
             _storeCategories = [data['category']];
           }
 
-          // اختيار التخصص تلقائياً إذا وجد تخصص واحد أو أكثر
-          if (_storeCategories.isNotEmpty) {
+          if (_storeCategories.isNotEmpty && _selectedDealCategory == null) {
             _selectedDealCategory = _storeCategories.first;
           }
           
           storeName = data['name'] ?? 'Store';
           subscriptionExpiry = (data['subscriptionExpiry'] as Timestamp?)?.toDate();
+          lastLocationUpdate = (data['lastLocationUpdate'] as Timestamp?)?.toDate();
         });
       }
     }
+  }
+
+  Future<void> _updateLocation() async {
+    if (lastLocationUpdate != null) {
+      final difference = DateTime.now().difference(lastLocationUpdate!).inDays;
+      if (difference < 30) {
+        _showError("${"location_change_limit".tr()} ${"next_change_available".tr(args: [DateFormat('yyyy/MM/dd').format(lastLocationUpdate!.add(const Duration(days: 30)))])}");
+        return;
+      }
+    }
+
+    setState(() => _isUpdatingLocation = true);
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      final user = FirebaseAuth.instance.currentUser;
+      await FirebaseFirestore.instance.collection('users').doc(user?.uid).update({
+        'lat': position.latitude,
+        'lng': position.longitude,
+        'lastLocationUpdate': FieldValue.serverTimestamp(),
+      });
+      setState(() => lastLocationUpdate = DateTime.now());
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("save_changes".tr()), backgroundColor: Colors.green));
+    } catch (e) {
+      _showError(e.toString());
+    } finally {
+      setState(() => _isUpdatingLocation = false);
+    }
+  }
+
+  void _processPayment(int days, double amount) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("تأكيد عملية الدفع 💳"),
+        content: Text("سيتم خصم $amount " + "jod_currency".tr() + " من بطاقتك لتجديد الاشتراك لمدة $days يوم."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("إلغاء".tr())),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () {
+              Navigator.pop(context);
+              _executeRenewal(days);
+            },
+            child: const Text("دفع وتفعيل", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _executeRenewal(int days) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    DateTime currentExpiry = subscriptionExpiry ?? DateTime.now();
+    DateTime newExpiry = currentExpiry.isBefore(DateTime.now()) 
+        ? DateTime.now().add(Duration(days: days))
+        : currentExpiry.add(Duration(days: days));
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'subscriptionExpiry': Timestamp.fromDate(newExpiry),
+      'isSubscribed': true,
+      'lastPaymentDate': FieldValue.serverTimestamp(),
+    });
+
+    setState(() => subscriptionExpiry = newExpiry);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم خصم المبلغ وتجديد الاشتراك بنجاح! 🎉"), backgroundColor: Colors.green));
   }
 
   @override
@@ -123,6 +193,75 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     }
   }
 
+  void _editDeal(String id, Map<String, dynamic> data) {
+    setState(() {
+      _editingDealId = id;
+      _productController.text = data['product'] ?? "";
+      _oldPriceController.text = (data['oldPrice'] ?? "").toString();
+      _newPriceController.text = (data['newPrice'] ?? "").toString();
+      _percentController.text = (data['discount'] ?? "").toString();
+      _selectedDealCategory = data['category'];
+      _selectedExpiry = (data['expiryTime'] as Timestamp).toDate();
+      productName = _productController.text;
+      discountPercent = "${_percentController.text}% OFF";
+      _tabController.animateTo(0);
+    });
+  }
+
+  Future<void> _publishOrUpdateDiscount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (_productController.text.isEmpty || _oldPriceController.text.isEmpty || _selectedDealCategory == null || user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("يرجى إكمال البيانات الأساسية والسعر والتخصص")));
+      return;
+    }
+
+    final dealData = {
+      'discount': _percentController.text,
+      'product': _productController.text,
+      'oldPrice': _oldPriceController.text,
+      'newPrice': _newPriceController.text,
+      'category': _selectedDealCategory,
+      'storeName': storeName,
+      'storeId': user.uid,
+      'expiryTime': Timestamp.fromDate(_selectedExpiry),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (_editingDealId != null) {
+      await FirebaseFirestore.instance.collection('deals').doc(_editingDealId).update(dealData);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم تحديث العرض بنجاح")));
+    } else {
+      dealData['createdAt'] = FieldValue.serverTimestamp();
+      await FirebaseFirestore.instance.collection('deals').add(dealData);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم نشر العرض بنجاح")));
+    }
+
+    _cancelEdit();
+    _tabController.animateTo(1);
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editingDealId = null;
+      _percentController.clear();
+      _productController.clear();
+      _oldPriceController.clear();
+      _newPriceController.clear();
+      productName = "";
+      discountPercent = "0% OFF";
+      _selectedExpiry = DateTime.now().add(const Duration(hours: 24));
+    });
+  }
+
+  void _deleteDeal(String id) async { 
+    await FirebaseFirestore.instance.collection('deals').doc(id).delete(); 
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم حذف العرض")));
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,7 +269,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: dropRed, size: 20), onPressed: () => Navigator.pop(context)),
         title: Text(_editingDealId == null ? "store_dashboard".tr() : "edit_deal_title".tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         bottom: TabBar(
           controller: _tabController,
@@ -166,7 +305,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           _buildPreviewCard(),
           const SizedBox(height: 40),
 
-          // القسم المصلح: عرض التخصصات
           if (_storeCategories.length > 1) ...[
             Text("صنف هذا العرض ضمن:", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 10),
@@ -183,7 +321,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
               }).toList(),
             ),
           ] else if (_storeCategories.length == 1) ...[
-            // إظهار التخصص الوحيد كمعلومة للمتجر
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(color: dropRed.withOpacity(0.05), borderRadius: BorderRadius.circular(15)),
@@ -228,6 +365,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
               child: Text(_editingDealId == null ? "publish_discount_button".tr() : "update_discount_button".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
+          if (_editingDealId != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: TextButton(onPressed: _cancelEdit, child: Center(child: Text("cancel_edit".tr(), style: const TextStyle(color: Colors.grey)))),
+            ),
         ],
       ),
     );
@@ -273,14 +415,23 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
             final id = docs[index].id;
+            DateTime? expiry = data['expiryTime'] != null ? (data['expiryTime'] as Timestamp).toDate() : null;
+            int remainingHours = expiry != null ? expiry.difference(DateTime.now()).inHours : 0;
+
             return Card(
               margin: const EdgeInsets.only(bottom: 15),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               child: ListTile(
                 leading: CircleAvatar(backgroundColor: dropRed.withOpacity(0.1), child: Icon(_getDealIcon(data['category']), color: dropRed, size: 20)),
                 title: Text(data['product'] ?? ""),
-                subtitle: Text("${data['discount']}% OFF • ${data['newPrice'] ?? ""} JOD"),
-                trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => _deleteDeal(id)),
+                subtitle: Text("${data['discount']}% OFF • ${data['newPrice'] ?? ""} JOD • ${remainingHours > 0 ? remainingHours : 0}h left"),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _editDeal(id, data)),
+                    IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => _deleteDeal(id)),
+                  ],
+                ),
               ),
             );
           },
@@ -291,16 +442,111 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
 
   Widget _buildSubscriptionTab() {
     int daysLeft = subscriptionExpiry != null ? subscriptionExpiry!.difference(DateTime.now()).inDays : 0;
-    return Center(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(25),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.stars_rounded, size: 100, color: daysLeft > 5 ? Colors.green : Colors.orange),
-          const SizedBox(height: 20),
-          Text("subscription_status".tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Text("${"days_left".tr()}: $daysLeft", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: daysLeft > 5 ? Colors.green : Colors.red)),
+          _buildStatusCard(daysLeft),
+          const SizedBox(height: 30),
+          _buildLocationUpdateSection(),
+          const SizedBox(height: 30),
+          _buildRenewalSection(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusCard(int daysLeft) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15)],
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.stars_rounded, size: 80, color: daysLeft > 5 ? Colors.green : Colors.orange),
+          const SizedBox(height: 15),
+          Text("subscription_status".tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 5),
+          Text("${"days_left".tr()}: $daysLeft", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: daysLeft > 5 ? Colors.green : Colors.red)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationUpdateSection() {
+    bool canUpdate = true;
+    String nextUpdate = "";
+    if (lastLocationUpdate != null) {
+      final diff = DateTime.now().difference(lastLocationUpdate!).inDays;
+      if (diff < 30) {
+        canUpdate = false;
+        nextUpdate = DateFormat('yyyy/MM/dd').format(lastLocationUpdate!.add(const Duration(days: 30)));
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("change_location".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: dropRed)),
+          const SizedBox(height: 8),
+          Text(canUpdate ? "location_change_limit".tr() : "${"location_change_limit".tr()} ${"next_change_available".tr(args: [nextUpdate])}", 
+            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          const SizedBox(height: 15),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: canUpdate ? dropRed : Colors.grey),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: canUpdate && !_isUpdatingLocation ? _updateLocation : null,
+              icon: _isUpdatingLocation ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: dropRed)) : const Icon(Icons.my_location_rounded, color: dropRed),
+              label: Text("تحديث موقع المتجر الآن", style: TextStyle(color: canUpdate ? dropRed : Colors.grey)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRenewalSection() {
+    return Column(
+      children: [
+        _buildRenewalOption("renew_monthly".tr(), Icons.calendar_today_rounded, dropRed.withOpacity(0.8), () => _processPayment(30, 5.0)),
+        const SizedBox(height: 12),
+        _buildRenewalOption("upgrade_yearly".tr(), Icons.auto_awesome_rounded, goldColor, () => _processPayment(365, 50.0)),
+      ],
+    );
+  }
+
+  Widget _buildRenewalOption(String title, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color, 
+          borderRadius: BorderRadius.circular(18), 
+          boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color == goldColor ? Colors.black87 : Colors.white),
+            const SizedBox(width: 15),
+            Text(title, style: TextStyle(color: color == goldColor ? Colors.black87 : Colors.white, fontWeight: FontWeight.bold)),
+            const Spacer(),
+            Icon(Icons.arrow_forward_ios_rounded, color: color == goldColor ? Colors.black54 : Colors.white70, size: 14),
+          ],
+        ),
       ),
     );
   }
@@ -343,32 +589,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       default: return Icons.storefront_rounded;
     }
   }
-
-  Future<void> _publishOrUpdateDiscount() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (_productController.text.isEmpty || _oldPriceController.text.isEmpty || _selectedDealCategory == null || user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("يرجى إكمال البيانات الأساسية والسعر والتخصص")));
-      return;
-    }
-
-    final dealData = {
-      'discount': _percentController.text,
-      'product': _productController.text,
-      'oldPrice': _oldPriceController.text,
-      'newPrice': _newPriceController.text,
-      'category': _selectedDealCategory,
-      'storeName': storeName,
-      'storeId': user.uid,
-      'expiryTime': Timestamp.fromDate(_selectedExpiry),
-      'createdAt': FieldValue.serverTimestamp(),
-    };
-
-    await FirebaseFirestore.instance.collection('deals').add(dealData);
-    _percentController.clear(); _productController.clear(); _oldPriceController.clear(); _newPriceController.clear();
-    _tabController.animateTo(1);
-  }
-
-  void _deleteDeal(String id) async { await FirebaseFirestore.instance.collection('deals').doc(id).delete(); }
 
   Widget _buildStoreInput(TextEditingController controller, String hint, Function(String) onChanged, {bool isNumber = false}) {
     return Container(

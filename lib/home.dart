@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:latlong2/latlong.dart';
 import 'map.dart';
 import 'ai_guide_screen.dart';
 import 'account.dart';
@@ -79,6 +80,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   static const Color lightGreen = Color(0xFFF1F8E9);
   String? _selectedCategory;
   final TextEditingController _searchController = TextEditingController();
+  
+  // موقع افتراضي للمستخدم (عمان)
+  final LatLng _userLocation = const LatLng(31.9539, 35.9106);
 
   @override
   void dispose() {
@@ -260,7 +264,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     String? category = data['category']?.toString();
     final productName = data['product'] ?? "Product";
     final storeName = data['storeName'] ?? "Store";
-    final discount = data['discount'] ?? "0%";
+    final discount = data['discount'] ?? "0";
+    final oldPrice = data['oldPrice']?.toString() ?? "";
+    final newPrice = data['newPrice']?.toString() ?? "";
     final user = FirebaseAuth.instance.currentUser;
     
     String timeLeftStr = "";
@@ -287,66 +293,185 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       categoryIcon = Icons.devices_rounded;
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: dropRed.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(categoryIcon, color: dropRed),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(storeName, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                if (timeLeftStr.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Row(
-                      children: [
-                        Icon(Icons.timer_outlined, size: 12, color: dropRed.withOpacity(0.7)),
-                        const SizedBox(width: 4),
-                        Text(timeLeftStr, style: TextStyle(color: dropRed.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
+    return GestureDetector(
+      onTap: () => _showDealDetails(doc),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: dropRed.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(categoryIcon, color: dropRed),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(storeName, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  if (timeLeftStr.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.timer_outlined, size: 12, color: dropRed.withOpacity(0.7)),
+                          const SizedBox(width: 4),
+                          Text(timeLeftStr, style: TextStyle(color: dropRed.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
-                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (newPrice.isNotEmpty)
+                  Text("$newPrice JOD", style: const TextStyle(color: dropRed, fontWeight: FontWeight.w900, fontSize: 18))
+                else
+                  Text("$discount% OFF", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
+                
+                if (oldPrice.isNotEmpty)
+                  Text("$oldPrice JOD", style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 12)),
+                
+                StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user?.uid)
+                      .collection('favorites')
+                      .doc(doc.id)
+                      .snapshots(),
+                  builder: (context, favSnapshot) {
+                    bool isFav = favSnapshot.hasData && favSnapshot.data!.exists;
+                    return IconButton(
+                      icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: dropRed, size: 20),
+                      onPressed: () => _toggleFavorite(doc.id, data, isFav),
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                    );
+                  },
+                ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(discount, style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
-              StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user?.uid)
-                    .collection('favorites')
-                    .doc(doc.id)
-                    .snapshots(),
-                builder: (context, favSnapshot) {
-                  bool isFav = favSnapshot.hasData && favSnapshot.data!.exists;
-                  return IconButton(
-                    icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: dropRed, size: 20),
-                    onPressed: () => _toggleFavorite(doc.id, data, isFav),
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                  );
-                },
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDealDetails(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    
+    // حساب المسافة
+    double distanceKm = 0;
+    if (data['lat'] != null && data['lng'] != null) {
+      distanceKm = const Distance().as(
+        LengthUnit.Kilometer,
+        _userLocation,
+        LatLng(data['lat'], data['lng']),
+      );
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
+            const SizedBox(height: 30),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(data['storeName'] ?? "Store", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                      Text(data['product'] ?? "Product", style: const TextStyle(fontSize: 18, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  child: Text(
+                    distanceKm > 0 ? "${distanceKm.toStringAsFixed(1)} km" : "موقع المحل",
+                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
+            const Divider(),
+            const SizedBox(height: 20),
+            const Text("العرض الحالي:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (data['newPrice'] != null)
+                  Text("${data['newPrice']} JOD", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: dropRed)),
+                const SizedBox(width: 15),
+                if (data['oldPrice'] != null)
+                  Text("${data['oldPrice']} JOD", style: const TextStyle(fontSize: 20, color: Colors.grey, decoration: TextDecoration.lineThrough)),
+              ],
+            ),
+            const SizedBox(height: 30),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_on_rounded, color: dropRed),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Text(
+                      data['location'] ?? "شارع مكة، عمان - الأردن",
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              height: 60,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: dropRed,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  final wrapper = context.findAncestorStateOfType<MainWrapperState>();
+                  if (wrapper != null) {
+                    wrapper.setIndex(1); // فتح الخريطة مباشرة
+                  }
+                },
+                child: const Text("ورجيني مكانه عالخريطة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
@@ -475,7 +600,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.grey[50], // خلفية مائلة للبياض قليلاً لزيادة التباين
+          color: Colors.grey[50], 
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
@@ -484,7 +609,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               offset: const Offset(-8, -8),
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.12), // زيادة قوة الظل السفلي للبروز
+              color: Colors.black.withOpacity(0.12), 
               blurRadius: 15,
               offset: const Offset(8, 8),
             ),
@@ -513,7 +638,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 13), // جعل الخط أغمق وأعرض
+              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 13), 
             ),
           ],
         ),
