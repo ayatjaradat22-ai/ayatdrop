@@ -12,6 +12,7 @@ import 'FAQ.dart';
 import 'contactus.dart';
 import 'store_home.dart';
 import 'saved_stores.dart';
+import 'premium.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -23,6 +24,7 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   final user = FirebaseAuth.instance.currentUser;
   static const Color dropRed = Color(0xFFFF1111);
+  static const Color goldColor = Color(0xFFFFD700);
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +42,7 @@ class _AccountScreenState extends State<AccountScreen> {
         builder: (context, snapshot) {
           String name = "loading".tr();
           String email = user?.email ?? "no_email".tr();
-          String role = "user"; // الرتبة الافتراضية
+          String role = "user";
 
           if (snapshot.hasData && snapshot.data!.exists) {
             var data = snapshot.data!.data() as Map<String, dynamic>;
@@ -66,7 +68,24 @@ class _AccountScreenState extends State<AccountScreen> {
 
                 // زر لوحة تحكم المتجر (يظهر فقط إذا كان المستخدم متجراً)
                 if (role == 'store')
-                  _buildStoreDashboardCard(),
+                  _buildSpecialDashboardCard(
+                    title: "store_dashboard".tr(),
+                    subtitle: "manage_deals_and_subs".tr(),
+                    icon: Icons.storefront_rounded,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreHomeScreen())),
+                  ),
+
+                if (role == 'store') const SizedBox(height: 15),
+
+                // زر البريميوم (ظاهر لجميع الحسابات تحت زر المتجر)
+                _buildSpecialDashboardCard(
+                  title: "premium_title".tr(),
+                  subtitle: "premium_subtitle".tr(),
+                  icon: Icons.stars_rounded,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen())),
+                ),
+
+                const SizedBox(height: 20),
 
                 _buildActionCard("saved_offers".tr(), Icons.favorite_rounded, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedStoresScreen()));
@@ -129,26 +148,43 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  // ويدجت مميز للوحة تحكم المتجر
-  Widget _buildStoreDashboardCard() {
+  Widget _buildSpecialDashboardCard({required String title, required String subtitle, required IconData icon, required VoidCallback onTap}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
+      width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Colors.black87, Colors.black]),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
-      ),
-      child: ListTile(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreHomeScreen())),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: dropRed, borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.dashboard_customize_rounded, color: Colors.white, size: 24),
+        borderRadius: BorderRadius.circular(25),
+        image: const DecorationImage(
+          image: AssetImage("images/splash_screen.png"),
+          fit: BoxFit.cover,
         ),
-        title: Text("store_dashboard".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        subtitle: Text("manage_deals_and_subs".tr(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          gradient: LinearGradient(
+            colors: [Colors.black.withOpacity(0.8), Colors.black.withOpacity(0.4)],
+            begin: Alignment.bottomRight,
+            end: Alignment.topLeft,
+          ),
+        ),
+        child: ListTile(
+          onTap: onTap,
+          contentPadding: EdgeInsets.zero,
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: goldColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: goldColor.withOpacity(0.5), width: 1),
+            ),
+            child: Icon(icon, color: goldColor, size: 28),
+          ),
+          title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[300], fontSize: 13)),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, color: goldColor, size: 16),
+        ),
       ),
     );
   }

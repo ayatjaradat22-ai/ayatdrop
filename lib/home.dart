@@ -8,6 +8,10 @@ import 'account.dart';
 import 'saved_stores.dart';
 import 'notifications_screen.dart';
 import 'price_comparison_screen.dart';
+import 'exclusive_deals_screen.dart';
+import 'alert_me_screen.dart';
+import 'ten_jd_challenge_screen.dart';
+import 'smart_shopping_list_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   final int initialIndex;
@@ -89,7 +93,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         children: [
           _buildHeader(),
           const SizedBox(height: 20),
-          _buildExploreAndCompareRow(),
+          _buildActionButtonsGrid(),
           const SizedBox(height: 25),
           _buildSectionTitle(_selectedCategory == null ? "popular_categories".tr() : "cat_filtered_title".tr(args: [_selectedCategory!.tr()])),
           const SizedBox(height: 15),
@@ -387,53 +391,130 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     );
   }
 
-  Widget _buildExploreAndCompareRow() {
+  Widget _buildActionButtonsGrid() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: _buildActionButton(
-              title: "explore_nearby".tr(),
-              icon: Icons.explore,
-              color: const Color(0xFF1E88E5),
-              onTap: () {
-                final wrapper = context.findAncestorStateOfType<MainWrapperState>();
-                if (wrapper != null) wrapper.setIndex(1);
-              },
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: _buildNeumorphicActionButton(
+                  title: "drop_exclusive".tr(),
+                  icon: Icons.confirmation_num_rounded,
+                  color: Colors.deepPurple.shade600,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ExclusiveDealsScreen())),
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildNeumorphicActionButton(
+                  title: "smart_shopping_list".tr(),
+                  icon: Icons.playlist_add_check_rounded,
+                  color: Colors.blueGrey.shade600,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SmartShoppingListScreen())),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: _buildActionButton(
-              title: "compare_before_go".tr(),
-              icon: Icons.shopping_cart_checkout_rounded,
-              color: Colors.orange.shade700,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PriceComparisonScreen())),
-            ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: _buildNeumorphicActionButton(
+                  title: "compare_before_go".tr(),
+                  icon: Icons.shopping_cart_checkout_rounded,
+                  color: Colors.orange.shade700,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PriceComparisonScreen())),
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildNeumorphicActionButton(
+                  title: "ten_jd_challenge".tr(),
+                  icon: Icons.monetization_on_rounded,
+                  color: Colors.green.shade600,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TenJdChallengeScreen())),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: _buildNeumorphicActionButton(
+                  title: "explore_nearby".tr(),
+                  icon: Icons.explore,
+                  color: const Color(0xFF1E88E5),
+                  onTap: () {
+                    final wrapper = context.findAncestorStateOfType<MainWrapperState>();
+                    if (wrapper != null) wrapper.setIndex(1);
+                  },
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildNeumorphicActionButton(
+                  title: "alert_me_title".tr(),
+                  icon: Icons.notifications_active_rounded,
+                  color: Colors.teal.shade600,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AlertMeScreen())),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton({required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
+  Widget _buildNeumorphicActionButton({required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+          color: Colors.grey[50], // خلفية مائلة للبياض قليلاً لزيادة التباين
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.white,
+              blurRadius: 15,
+              offset: const Offset(-8, -8),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12), // زيادة قوة الظل السفلي للبروز
+              blurRadius: 15,
+              offset: const Offset(8, 8),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 8),
-            Text(title, 
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title, 
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 13), // جعل الخط أغمق وأعرض
+            ),
           ],
         ),
       ),

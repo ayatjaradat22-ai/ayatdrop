@@ -13,6 +13,7 @@ class PremiumScreen extends StatefulWidget {
 class _PremiumScreenState extends State<PremiumScreen> {
   final user = FirebaseAuth.instance.currentUser;
   static const Color dropRed = Color(0xFFFF1111);
+  static const Color deepRed = Color(0xFF8B0000);
 
   Future<void> _activatePremium() async {
     try {
@@ -53,58 +54,101 @@ class _PremiumScreenState extends State<PremiumScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 25),
             child: Column(
               children: [
-                const SizedBox(height: 20),
-                // أيقونة VIP بتصميم متناسق مع الأحمر
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: dropRed.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.stars_rounded, color: dropRed, size: 80),
+                const SizedBox(height: 10),
+                // أيقونة VIP بتصميم فخم (تأثير متوهج)
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            dropRed.withOpacity(0.2),
+                            dropRed.withOpacity(0.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(25),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: dropRed.withOpacity(0.15),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.stars_rounded, color: dropRed, size: 70),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 30),
                 Text(
                   isPremium ? "premium_member".tr() : "premium_title".tr(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.black, fontSize: 28, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: Colors.black, 
+                    fontSize: 30, 
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  "premium_features_desc".tr(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 15, height: 1.5),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    "premium_features_desc".tr(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 15, height: 1.6),
+                  ),
                 ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 40),
 
                 _buildFeatureItem(Icons.auto_awesome_rounded, "ai_deal_hunter".tr()),
                 _buildFeatureItem(Icons.local_offer_rounded, "vip_discounts".tr()),
                 _buildFeatureItem(Icons.notifications_active_rounded, "early_access".tr()),
 
-                const SizedBox(height: 60),
+                const SizedBox(height: 50),
 
                 if (!isPremium)
-                  Container(
-                    width: double.infinity,
-                    height: 65,
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: dropRed.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                  GestureDetector(
+                    onTap: _activatePremium,
+                    child: Container(
+                      width: double.infinity,
+                      height: 65,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        gradient: const LinearGradient(
+                          colors: [dropRed, Color(0xFFCC0000)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: dropRed,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 0,
+                        boxShadow: [
+                          BoxShadow(
+                            color: dropRed.withOpacity(0.4),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                      onPressed: _activatePremium,
-                      child: Text("join_premium".tr(), 
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+                      child: Center(
+                        child: Text(
+                          "join_premium".tr(), 
+                          style: const TextStyle(
+                            color: Colors.white, 
+                            fontWeight: FontWeight.bold, 
+                            fontSize: 18,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
                     ),
                   )
                 else
@@ -113,7 +157,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: Colors.green.withOpacity(0.2)),
+                      border: Border.all(color: Colors.green.withOpacity(0.2), width: 1.5),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -136,21 +180,40 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   Widget _buildFeatureItem(IconData icon, String text) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade100),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.grey.shade100, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(icon, color: dropRed, size: 26),
-          const SizedBox(width: 15),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: dropRed.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: dropRed, size: 24),
+          ),
+          const SizedBox(width: 18),
           Expanded(
             child: Text(text, 
-              style: const TextStyle(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.w600)),
+              style: const TextStyle(
+                color: Colors.black87, 
+                fontSize: 16, 
+                fontWeight: FontWeight.w700,
+              )),
           ),
+          Icon(Icons.check_circle_outline_rounded, color: Colors.grey.shade300, size: 20),
         ],
       ),
     );

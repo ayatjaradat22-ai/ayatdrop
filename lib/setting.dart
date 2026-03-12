@@ -113,36 +113,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildPremiumCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: Colors.black,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
+        image: const DecorationImage(
+          image: AssetImage("images/splash_screen.png"),
+          fit: BoxFit.cover,
+        ),
+        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("premium_title".tr(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 5),
-                Text("premium_subtitle".tr(), style: TextStyle(color: Colors.grey[400], fontSize: 13)),
-                const SizedBox(height: 15),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: dropRed,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen())),
-                  child: Text("get_started".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
+      child: Container(
+        padding: const EdgeInsets.all(25),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          gradient: LinearGradient(
+            colors: [Colors.black.withOpacity(0.6), Colors.black.withOpacity(0.2)],
+            begin: Alignment.bottomRight,
+            end: Alignment.topLeft,
           ),
-          const Icon(Icons.stars_rounded, color: Color(0xFFFFD700), size: 60),
-        ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("premium_title".tr(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 5),
+                  Text("premium_subtitle".tr(), style: TextStyle(color: Colors.grey[200], fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 15),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: dropRed,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen())),
+                    child: Text("get_started".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.stars_rounded, color: Color(0xFFFFD700), size: 60),
+          ],
+        ),
       ),
     );
   }

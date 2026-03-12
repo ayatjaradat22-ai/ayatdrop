@@ -1,0 +1,147 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
+
+class ExclusiveDealsScreen extends StatelessWidget {
+  const ExclusiveDealsScreen({super.key});
+
+  static const Color dropRed = Color(0xFFFF1111);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "drop_exclusive".tr(),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('deals')
+            .where('isExclusive', isEqualTo: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: dropRed));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final deal = snapshot.data!.docs[index];
+              return _buildExclusiveCard(context, deal);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildExclusiveCard(BuildContext context, DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: dropRed.withOpacity(0.2), width: 2),
+        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: dropRed.withOpacity(0.05),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(23), topRight: Radius.circular(23)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.confirmation_num_rounded, color: dropRed, size: 30),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(data['storeName'] ?? "Store", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                      Text(data['product'] ?? "Deal", style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: dropRed, borderRadius: BorderRadius.circular(12)),
+                  child: Text(data['discount'] ?? "", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Text(
+                  "show_at_cashier".tr(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                ),
+                const SizedBox(height: 20),
+                // زر وهمي للباركود أو الكود
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.qr_code_2_rounded, size: 24),
+                      const SizedBox(width: 10),
+                      Text("DROP-${doc.id.substring(0, 5).toUpperCase()}", 
+                        style: const TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 18)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.stars_rounded, size: 80, color: Colors.grey[200]),
+          const SizedBox(height: 15),
+          const Text("Coming Soon! 🚀", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 18)),
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40),
+            child: Text("We are working on exclusive deals just for you.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+}

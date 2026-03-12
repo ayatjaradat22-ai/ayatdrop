@@ -18,6 +18,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
+  final TextEditingController otherCategoryController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
@@ -25,7 +26,9 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
   final TextEditingController expiryDateController = TextEditingController();
   final TextEditingController cvvController = TextEditingController();
 
-  String? _selectedCategory;
+  String? _primaryCategory; // الفئة الأولى (إجبارية)
+  String? _secondaryCategory; // الفئة الثانية (اختيارية)
+
   final List<String> _categories = [
     'cat_food',
     'cat_fashion',
@@ -44,8 +47,8 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
       return;
     }
 
-    if (_selectedCategory == null) {
-      _showError("select_category_error".tr());
+    if (_primaryCategory == null) {
+      _showError("يرجى اختيار التخصص الأساسي للمتجر!");
       return;
     }
 
@@ -61,7 +64,6 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
       bool isExistingUser = false;
 
       try {
-        // محاولة إنشاء حساب جديد
         UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
@@ -69,8 +71,6 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
         uid = userCredential.user!.uid;
       } on FirebaseAuthException catch (e) {
         if (e.code == 'email-already-in-use') {
-          // إذا كان البريد موجوداً مسبقاً، نحاول تسجيل الدخول لتحديث البيانات
-          // ملاحظة: في تطبيق حقيقي يفضل استخدام تدفق التحقق، لكننا هنا سنقوم بالتحديث
           UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
             email: emailController.text.trim(),
             password: passwordController.text.trim(),
@@ -82,22 +82,41 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
         }
       }
 
+      // تجهيز الفئات النهائية (معالجة خيار "أخرى")
+      List<String> finalCategories = [];
+      
+      // معالجة الفئة الأساسية
+      if (_primaryCategory == 'cat_other' && otherCategoryController.text.isNotEmpty) {
+        finalCategories.add(otherCategoryController.text.trim());
+      } else {
+        finalCategories.add(_primaryCategory!);
+      }
+
+      // معالجة الفئة الثانوية (اختيارية)
+      if (_secondaryCategory != null) {
+        if (_secondaryCategory == 'cat_other' && otherCategoryController.text.isNotEmpty) {
+          String otherVal = otherCategoryController.text.trim();
+          if (!finalCategories.contains(otherVal)) finalCategories.add(otherVal);
+        } else {
+          finalCategories.add(_secondaryCategory!);
+        }
+      }
+
       DateTime expiryDate = DateTime.now().add(const Duration(days: 30));
 
-      // تحديث أو إنشاء وثيقة المستخدم في Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': nameController.text.trim(),
         'email': emailController.text.trim(),
         'location': locationController.text.trim(),
-        'category': _selectedCategory,
-        'role': 'store', // سيصبح متجراً (ويمكنه الاستمرار كمشتري أيضاً)
+        'categories': finalCategories,
+        'role': 'store',
         'isSubscribed': true,
         'subscriptionExpiry': Timestamp.fromDate(expiryDate),
         'updatedAt': FieldValue.serverTimestamp(),
         if (!isExistingUser) 'createdAt': FieldValue.serverTimestamp(),
         'lastPaymentStatus': isDevMode ? 'dev_bypass' : 'success',
         'monthlyFee': isDevMode ? 0.0 : 5.0,
-      }, SetOptions(merge: true)); // دمج البيانات للحفاظ على البيانات القديمة للمشتري
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
       
@@ -163,32 +182,59 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
               const SizedBox(height: 30),
 
               _buildStoreInputField(controller: nameController, hint: "store_name_hint".tr(), icon: Icons.store_outlined),
-              const SizedBox(height: 15),
+              const SizedBox(height: 25),
               
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: _selectedCategory,
-                    hint: Text("select_category_hint".tr(), style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                    items: _categories.map((String cat) {
-                      return DropdownMenuItem<String>(
-                        value: cat,
-                        child: Text(cat.tr(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                      );
-                    }).toList(),
-                    onChanged: (val) => setState(() => _selectedCategory = val),
-                  ),
-                ),
+              // اختيار التخصص الأساسي (إجباري)
+              Align(alignment: Alignment.centerRight, child: Text("التخصص الأساسي (إجباري)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: _categories.map((cat) {
+                  bool isSelected = _primaryCategory == cat;
+                  return ChoiceChip(
+                    label: Text(cat.tr(), style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontSize: 12)),
+                    selected: isSelected,
+                    selectedColor: dropRed,
+                    onSelected: (selected) {
+                      setState(() {
+                        _primaryCategory = selected ? cat : null;
+                        if (_secondaryCategory == cat) _secondaryCategory = null; // لا يمكن تكرار نفس التخصص
+                      });
+                    },
+                  );
+                }).toList(),
               ),
 
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
+
+              // اختيار التخصص الثانوي (اختياري)
+              Align(alignment: Alignment.centerRight, child: Text("تخصص إضافي (اختياري)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey))),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: _categories.map((cat) {
+                  bool isSelected = _secondaryCategory == cat;
+                  bool isPrimary = _primaryCategory == cat;
+                  return ChoiceChip(
+                    label: Text(cat.tr(), style: TextStyle(color: isSelected ? Colors.white : (isPrimary ? Colors.grey.shade300 : Colors.black87), fontSize: 12)),
+                    selected: isSelected,
+                    selectedColor: Colors.black87,
+                    onSelected: isPrimary ? null : (selected) {
+                      setState(() {
+                        _secondaryCategory = selected ? cat : null;
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+
+              if (_primaryCategory == 'cat_other' || _secondaryCategory == 'cat_other')
+                Padding(
+                  padding: const EdgeInsets.only(top: 15),
+                  child: _buildStoreInputField(controller: otherCategoryController, hint: "اكتب التخصص الآخر هنا...", icon: Icons.edit_note_rounded),
+                ),
+
+              const SizedBox(height: 20),
               _buildStoreInputField(controller: emailController, hint: "store_email_hint".tr(), icon: Icons.email_outlined),
               const SizedBox(height: 15),
               _buildStoreInputField(controller: locationController, hint: "store_location_hint".tr(), icon: Icons.map_outlined),
