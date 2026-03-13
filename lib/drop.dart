@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -22,6 +23,13 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color dropRed = Color(0xFFFF1111);
 
   Future<void> loginUser() async {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("fill_all_fields_error".tr()), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -82,11 +90,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 Text("login_title".tr(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 30),
-                                _input(emailController, Icons.email_outlined, "email_hint".tr()),
+                                _input(
+                                  emailController, 
+                                  Icons.email_outlined, 
+                                  "email_hint".tr(),
+                                  limit: 50,
+                                ),
                                 const SizedBox(height: 20),
                                 _input(
                                   passwordController, Icons.lock_outline, "password_hint".tr(),
                                   hide: _isPasswordHidden,
+                                  limit: 32,
                                   suffix: IconButton(
                                     icon: Icon(_isPasswordHidden ? Icons.visibility_off : Icons.visibility),
                                     onPressed: () => setState(() => _isPasswordHidden = !_isPasswordHidden),
@@ -113,7 +127,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 25),
-                                // أيقونة المتجر الحمراء تحت جملة إنشاء الحساب
                                 GestureDetector(
                                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreLoginScreen())),
                                   child: Container(
@@ -148,13 +161,16 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _input(TextEditingController cont, IconData icon, String hint, {bool hide = false, Widget? suffix}) {
+  Widget _input(TextEditingController cont, IconData icon, String hint, {bool hide = false, Widget? suffix, int? limit, List<TextInputFormatter>? formatters}) {
     return TextField(
       controller: cont, obscureText: hide,
+      maxLength: limit,
+      inputFormatters: formatters,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: Colors.black87),
         suffixIcon: suffix, hintText: hint, filled: true,
         fillColor: Colors.white.withOpacity(0.6),
+        counterText: "",
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       ),
     );

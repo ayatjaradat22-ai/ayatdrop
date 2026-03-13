@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -22,6 +23,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   static const Color dropRed = Color(0xFFFF1111);
 
   Future<void> signUpUser() async {
+    if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passController.text.isEmpty) {
+      _showSnackBar("fill_all_fields_error".tr());
+      return;
+    }
+
     if (_passController.text != _confirmPassController.text) {
       _showSnackBar("passwords_not_match".tr());
       return;
@@ -63,7 +69,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.black87),
+      SnackBar(content: Text(message), backgroundColor: dropRed),
     );
   }
 
@@ -95,17 +101,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             children: [
                               Text("signup_title".tr(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 25),
-                              _buildModernField(_nameController, "full_name_hint".tr(), Icons.person_outline),
+                              _buildModernField(_nameController, "full_name_hint".tr(), Icons.person_outline, limit: 40),
                               const SizedBox(height: 15),
-                              _buildModernField(_emailController, "email_hint".tr(), Icons.email_outlined),
+                              _buildModernField(_emailController, "email_hint".tr(), Icons.email_outlined, limit: 50),
                               const SizedBox(height: 15),
-                              _buildModernField(_passController, "password_hint".tr(), Icons.lock_outline, isPass: _isPasswordHidden,
+                              _buildModernField(_passController, "password_hint".tr(), Icons.lock_outline, isPass: _isPasswordHidden, limit: 32,
                                   suffix: IconButton(
                                     icon: Icon(_isPasswordHidden ? Icons.visibility_off : Icons.visibility),
                                     onPressed: () => setState(() => _isPasswordHidden = !_isPasswordHidden),
                                   )),
                               const SizedBox(height: 15),
-                              _buildModernField(_confirmPassController, "confirm_password_hint".tr(), Icons.lock_reset_outlined, isPass: _isPasswordHidden),
+                              _buildModernField(_confirmPassController, "confirm_password_hint".tr(), Icons.lock_reset_outlined, isPass: _isPasswordHidden, limit: 32),
                               const SizedBox(height: 30),
                               SizedBox(
                                 width: double.infinity, height: 55,
@@ -130,12 +136,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildModernField(TextEditingController controller, String hint, IconData icon, {bool isPass = false, Widget? suffix}) {
+  Widget _buildModernField(TextEditingController controller, String hint, IconData icon, {bool isPass = false, Widget? suffix, int? limit, List<TextInputFormatter>? formatters}) {
     return Container(
       decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(15)),
       child: TextField(
-        controller: controller, obscureText: isPass,
-        decoration: InputDecoration(hintText: hint, prefixIcon: Icon(icon), suffixIcon: suffix, border: InputBorder.none, contentPadding: const EdgeInsets.all(15)),
+        controller: controller, 
+        obscureText: isPass,
+        maxLength: limit,
+        inputFormatters: formatters,
+        decoration: InputDecoration(
+          hintText: hint, 
+          prefixIcon: Icon(icon), 
+          suffixIcon: suffix, 
+          border: InputBorder.none, 
+          contentPadding: const EdgeInsets.all(15),
+          counterText: "",
+        ),
       ),
     );
   }

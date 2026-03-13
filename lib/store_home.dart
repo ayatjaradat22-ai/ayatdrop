@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:geolocator/geolocator.dart';
+import 'checkout_screen.dart';
 
 class StoreHomeScreen extends StatefulWidget {
   const StoreHomeScreen({super.key});
@@ -34,7 +36,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   static const Color goldColor = Color(0xFFFFD700);
   static const Color scaffoldBg = Color(0xFFF9F6F2);
 
-  bool _isPriceMode = true;
+  bool _isPriceMode = true; // true: التحكم بالسعر الجديد، false: التحكم بالنسبة
   bool _isUpdatingLocation = false;
 
   @override
@@ -97,22 +99,14 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   void _processPayment(int days, double amount) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("تأكيد عملية الدفع 💳"),
-        content: Text("سيتم خصم $amount " + "jod_currency".tr() + " من بطاقتك لتجديد الاشتراك لمدة $days يوم."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("إلغاء".tr())),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () {
-              Navigator.pop(context);
-              _executeRenewal(days);
-            },
-            child: const Text("دفع وتفعيل", style: TextStyle(color: Colors.white)),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutScreen(
+          amount: amount,
+          days: days,
+          onSuccess: () => _executeRenewal(days),
+        ),
       ),
     );
   }
@@ -336,17 +330,47 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           ],
           
           const SizedBox(height: 25),
-          _buildStoreInput(_productController, "product_name_hint".tr(), (v) => setState(() => productName = v)),
+          _buildStoreInput(_productController, "product_name_hint".tr(), (v) => setState(() => productName = v), limit: 30),
           const SizedBox(height: 18),
           
-          _buildStoreInput(_oldPriceController, "السعر القديم (JOD)", (v) => _updateCalculations(), isNumber: true),
+          _buildStoreInput(_oldPriceController, "السعر القديم (JOD)", (v) => _updateCalculations(), isNumber: true, limit: 6),
           const SizedBox(height: 18),
 
           Row(
             children: [
-              Expanded(child: _buildStoreInput(_newPriceController, "السعر الجديد", (v) { _isPriceMode = true; _updateCalculations(); }, isNumber: true)),
+              Expanded(
+                child: _buildStoreInput(
+                  _newPriceController, 
+                  "السعر الجديد", 
+                  (v) { 
+                    if (v.isNotEmpty) {
+                      _isPriceMode = true; 
+                      _percentController.clear();
+                    }
+                    _updateCalculations(); 
+                  }, 
+                  isNumber: true, 
+                  limit: 6,
+                  readOnly: !_isPriceMode && _percentController.text.isNotEmpty,
+                ),
+              ),
               const SizedBox(width: 15),
-              Expanded(child: _buildStoreInput(_percentController, "النسبة (%)", (v) { _isPriceMode = false; _updateCalculations(); }, isNumber: true)),
+              Expanded(
+                child: _buildStoreInput(
+                  _percentController, 
+                  "النسبة (%)", 
+                  (v) { 
+                    if (v.isNotEmpty) {
+                      _isPriceMode = false; 
+                      _newPriceController.clear();
+                    }
+                    _updateCalculations(); 
+                  }, 
+                  isNumber: true, 
+                  limit: 2,
+                  readOnly: _isPriceMode && _newPriceController.text.isNotEmpty,
+                ),
+              ),
             ],
           ),
           
@@ -590,11 +614,23 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     }
   }
 
-  Widget _buildStoreInput(TextEditingController controller, String hint, Function(String) onChanged, {bool isNumber = false}) {
+  Widget _buildStoreInput(TextEditingController controller, String hint, Function(String) onChanged, {bool isNumber = false, int? limit, bool readOnly = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
-      child: TextField(controller: controller, onChanged: onChanged, keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text, decoration: InputDecoration(hintText: hint, border: InputBorder.none)),
+      decoration: BoxDecoration(
+        color: readOnly ? Colors.grey[100] : Colors.white, 
+        borderRadius: BorderRadius.circular(15), 
+        border: Border.all(color: readOnly ? Colors.transparent : Colors.grey.shade200)
+      ),
+      child: TextField(
+        controller: controller, 
+        onChanged: onChanged, 
+        maxLength: limit,
+        readOnly: readOnly,
+        inputFormatters: isNumber ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))] : null,
+        keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text, 
+        decoration: InputDecoration(hintText: hint, border: InputBorder.none, counterText: ""),
+      ),
     );
   }
 }
