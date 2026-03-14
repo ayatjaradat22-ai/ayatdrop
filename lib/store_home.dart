@@ -26,6 +26,8 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   List<String> _storeCategories = [];
   String? _selectedDealCategory;
   String? storeName;
+  double? storeLat;
+  double? storeLng;
   DateTime? subscriptionExpiry;
   DateTime? lastLocationUpdate;
   
@@ -36,7 +38,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   static const Color goldColor = Color(0xFFFFD700);
   static const Color scaffoldBg = Color(0xFFF9F6F2);
 
-  bool _isPriceMode = true; // true: التحكم بالسعر الجديد، false: التحكم بالنسبة
+  bool _isPriceMode = true; 
   bool _isUpdatingLocation = false;
 
   @override
@@ -64,10 +66,29 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           }
           
           storeName = data['name'] ?? 'Store';
+          storeLat = (data['lat'] as num?)?.toDouble();
+          storeLng = (data['lng'] as num?)?.toDouble();
           subscriptionExpiry = (data['subscriptionExpiry'] as Timestamp?)?.toDate();
           lastLocationUpdate = (data['lastLocationUpdate'] as Timestamp?)?.toDate();
         });
       }
+    }
+  }
+
+  Future<void> _resetLocationCooldown() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'lastLocationUpdate': FieldValue.delete(),
+    });
+
+    setState(() => lastLocationUpdate = null);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("DEBUG: Location cooldown reset!"), backgroundColor: Colors.orange)
+      );
     }
   }
 
@@ -82,19 +103,67 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
 
     setState(() => _isUpdatingLocation = true);
     try {
-      Position position = await Geolocator.getCurrentPosition();
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => _isUpdatingLocation = false);
+        _showError("location_service_disabled".tr());
+        await Geolocator.openLocationSettings();
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => _isUpdatingLocation = false);
+          _showError("location_permission_denied".tr());
+          return;
+        }
+      }
+
+      // جلب الموقع الحالي بدقة عالية
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+
       final user = FirebaseAuth.instance.currentUser;
-      await FirebaseFirestore.instance.collection('users').doc(user?.uid).update({
+      if (user == null) return;
+
+      // 1. تحديث موقع المتجر في جدول المستخدمين
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
         'lat': position.latitude,
         'lng': position.longitude,
         'lastLocationUpdate': FieldValue.serverTimestamp(),
       });
-      setState(() => lastLocationUpdate = DateTime.now());
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("save_changes".tr()), backgroundColor: Colors.green));
+
+      // 2. تحديث موقع المتجر في جميع العروض المنشورة سابقاً لضمان انتقالها على الخريطة
+      final dealsQuery = await FirebaseFirestore.instance
+          .collection('deals')
+          .where('storeId', isEqualTo: user.uid)
+          .get();
+
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      for (var doc in dealsQuery.docs) {
+        batch.update(doc.reference, {
+          'lat': position.latitude,
+          'lng': position.longitude,
+        });
+      }
+      await batch.commit();
+      
+      setState(() {
+        storeLat = position.latitude;
+        storeLng = position.longitude;
+        lastLocationUpdate = DateTime.now();
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("save_changes".tr()), backgroundColor: Colors.green)
+        );
+      }
     } catch (e) {
       _showError(e.toString());
     } finally {
-      setState(() => _isUpdatingLocation = false);
+      if (mounted) setState(() => _isUpdatingLocation = false);
     }
   }
 
@@ -127,7 +196,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     });
 
     setState(() => subscriptionExpiry = newExpiry);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم خصم المبلغ وتجديد الاشتراك بنجاح! 🎉"), backgroundColor: Colors.green));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("publish_discount_button".tr()), backgroundColor: Colors.green));
   }
 
   @override
@@ -205,8 +274,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   Future<void> _publishOrUpdateDiscount() async {
     final user = FirebaseAuth.instance.currentUser;
     if (_productController.text.isEmpty || _oldPriceController.text.isEmpty || _selectedDealCategory == null || user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("يرجى إكمال البيانات الأساسية والسعر والتخصص")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("fill_all_fields_error".tr())));
       return;
+    }
+
+    if (storeLat == null || storeLng == null) {
+      await _loadStoreData();
     }
 
     final dealData = {
@@ -217,17 +290,19 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       'category': _selectedDealCategory,
       'storeName': storeName,
       'storeId': user.uid,
+      'lat': storeLat ?? 31.9539, 
+      'lng': storeLng ?? 35.9106,
       'expiryTime': Timestamp.fromDate(_selectedExpiry),
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
     if (_editingDealId != null) {
       await FirebaseFirestore.instance.collection('deals').doc(_editingDealId).update(dealData);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم تحديث العرض بنجاح")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr())));
     } else {
       dealData['createdAt'] = FieldValue.serverTimestamp();
       await FirebaseFirestore.instance.collection('deals').add(dealData);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم نشر العرض بنجاح")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr())));
     }
 
     _cancelEdit();
@@ -249,7 +324,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
 
   void _deleteDeal(String id) async { 
     await FirebaseFirestore.instance.collection('deals').doc(id).delete(); 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم حذف العرض")));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("cancel_edit".tr())));
   }
 
   void _showError(String msg) {
@@ -300,7 +375,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           const SizedBox(height: 40),
 
           if (_storeCategories.length > 1) ...[
-            Text("صنف هذا العرض ضمن:", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text("primary_cat_label".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 10,
@@ -322,7 +397,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
                 children: [
                   const Icon(Icons.info_outline, color: dropRed, size: 20),
                   const SizedBox(width: 10),
-                  Text("تخصص العرض: ", style: const TextStyle(fontSize: 13)),
+                  Text("${"primary_cat_label".tr()}: ", style: const TextStyle(fontSize: 13)),
                   Text(_storeCategories.first.tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: dropRed)),
                 ],
               ),
@@ -448,7 +523,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
               child: ListTile(
                 leading: CircleAvatar(backgroundColor: dropRed.withOpacity(0.1), child: Icon(_getDealIcon(data['category']), color: dropRed, size: 20)),
                 title: Text(data['product'] ?? ""),
-                subtitle: Text("${data['discount']}% OFF • ${data['newPrice'] ?? ""} JOD • ${remainingHours > 0 ? remainingHours : 0}h left"),
+                subtitle: Text("${data['discount']}% ${"off_text".tr()} • ${data['newPrice'] ?? ""} ${"jod_currency".tr()} • ${remainingHours > 0 ? remainingHours : 0}${"hours_short".tr()} left"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -475,6 +550,13 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           _buildLocationUpdateSection(),
           const SizedBox(height: 30),
           _buildRenewalSection(),
+          const SizedBox(height: 20),
+          
+          TextButton.icon(
+            onPressed: _resetLocationCooldown,
+            icon: const Icon(Icons.refresh_rounded, color: Colors.orange, size: 16),
+            label: const Text("DEBUG: Reset 30-day Cooldown", style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
@@ -534,7 +616,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
               ),
               onPressed: canUpdate && !_isUpdatingLocation ? _updateLocation : null,
               icon: _isUpdatingLocation ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: dropRed)) : const Icon(Icons.my_location_rounded, color: dropRed),
-              label: Text("تحديث موقع المتجر الآن", style: TextStyle(color: canUpdate ? dropRed : Colors.grey)),
+              label: Text("get_my_location".tr(), style: TextStyle(color: canUpdate ? dropRed : Colors.grey)),
             ),
           ),
         ],
@@ -586,7 +668,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
         children: [
           Icon(_getDealIcon(_selectedDealCategory), color: Colors.white, size: 40),
           const SizedBox(height: 15),
-          Text("${_percentController.text}% OFF", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+          Text("${_percentController.text}% ${"off_text".tr()}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
           Text(productName.isEmpty ? "product_name_placeholder".tr() : productName, style: const TextStyle(color: Colors.white70)),
           if (oldP.isNotEmpty || newP.isNotEmpty)
             Padding(
@@ -594,9 +676,9 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (oldP.isNotEmpty) Text("$oldP JOD", style: const TextStyle(color: Colors.white60, decoration: TextDecoration.lineThrough, fontSize: 16)),
+                  if (oldP.isNotEmpty) Text("$oldP ${"jod_currency".tr()}", style: const TextStyle(color: Colors.white60, decoration: TextDecoration.lineThrough, fontSize: 16)),
                   const SizedBox(width: 10),
-                  if (newP.isNotEmpty) Text("$newP JOD", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+                  if (newP.isNotEmpty) Text("$newP ${"jod_currency".tr()}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
                 ],
               ),
             ),

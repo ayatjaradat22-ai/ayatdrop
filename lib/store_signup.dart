@@ -47,25 +47,56 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
   Future<void> _getCurrentLocation() async {
     setState(() => _isLocating = true);
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+      bool serviceEnabled;
+      LocationPermission permission;
+
+      // 1. التحقق من تفعيل خدمة الـ GPS
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => _isLocating = false);
+        _showError("location_service_disabled".tr());
+        // محاولة طلب تفعيل الخدمة (تفتح إعدادات النظام)
+        await Geolocator.openLocationSettings();
+        return;
       }
 
-      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        Position position = await Geolocator.getCurrentPosition();
-        setState(() {
-          latController.text = position.latitude.toString();
-          lngController.text = position.longitude.toString();
-        });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم تحديد موقعك بنجاح! 📍"), backgroundColor: Colors.green));
-      } else {
-        _showError("يجب إعطاء صلاحية الموقع لتحديد الإحداثيات تلقائياً.");
+      // 2. التحقق من الأذونات
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => _isLocating = false);
+          _showError("location_permission_denied".tr());
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => _isLocating = false);
+        _showError("location_permission_permanently_denied".tr());
+        await Geolocator.openAppSettings();
+        return;
+      }
+
+      // 3. جلب الموقع الحالي
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high
+      );
+      
+      setState(() {
+        latController.text = position.latitude.toString();
+        lngController.text = position.longitude.toString();
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("location_success".tr()), backgroundColor: Colors.green)
+        );
       }
     } catch (e) {
-      _showError("حدث خطأ أثناء تحديد الموقع: $e");
+      _showError("location_error".tr(args: [e.toString()]));
     } finally {
-      setState(() => _isLocating = false);
+      if (mounted) setState(() => _isLocating = false);
     }
   }
 
@@ -74,7 +105,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
     double? lng = double.tryParse(lngController.text.trim());
 
     if (lat == null || lng == null || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      _showError("يرجى إدخال أو تحديد إحداثيات صحيحة");
+      _showError("invalid_coords_error".tr());
       return;
     }
 
@@ -84,7 +115,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
     }
 
     if (_primaryCategory == null) {
-      _showError("يرجى اختيار التخصص الأساسي للمتجر!");
+      _showError("select_primary_cat_error".tr());
       return;
     }
 
@@ -213,7 +244,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
               _buildStoreInputField(controller: nameController, hint: "store_name_hint".tr(), icon: Icons.store_outlined),
               const SizedBox(height: 25),
               
-              Align(alignment: Alignment.centerRight, child: Text("التخصص الأساسي (إجباري)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+              Align(alignment: Alignment.centerRight, child: Text("primary_cat_label".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -235,7 +266,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
 
               const SizedBox(height: 20),
 
-              Align(alignment: Alignment.centerRight, child: Text("تخصص إضافي (اختياري)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey))),
+              Align(alignment: Alignment.centerRight, child: Text("secondary_cat_label".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey))),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -258,14 +289,13 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
               if (_primaryCategory == 'cat_other' || _secondaryCategory == 'cat_other')
                 Padding(
                   padding: const EdgeInsets.only(top: 15),
-                  child: _buildStoreInputField(controller: otherCategoryController, hint: "اكتب التخصص الآخر هنا...", icon: Icons.edit_note_rounded),
+                  child: _buildStoreInputField(controller: otherCategoryController, hint: "other_cat_hint".tr(), icon: Icons.edit_note_rounded),
                 ),
 
               const SizedBox(height: 25),
               _buildStoreInputField(controller: emailController, hint: "store_email_hint".tr(), icon: Icons.email_outlined),
               
               const SizedBox(height: 25),
-              // قسم الإحداثيات مع زر "تحديد موقعي"
               Row(
                 children: [
                   Expanded(child: _buildStoreInputField(controller: latController, hint: "Latitude", icon: Icons.location_on, isNumber: true)),
@@ -279,7 +309,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
                 child: TextButton.icon(
                   onPressed: _isLocating ? null : _getCurrentLocation,
                   icon: _isLocating ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: dropRed)) : const Icon(Icons.my_location_rounded, color: dropRed),
-                  label: Text(_isLocating ? "جاري التحديد..." : "تحديد موقعي الحالي تلقائياً", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
+                  label: Text(_isLocating ? "locating".tr() : "get_my_location".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
                   style: TextButton.styleFrom(backgroundColor: dropRed.withOpacity(0.05), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                 ),
               ),
@@ -291,9 +321,9 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
               const SizedBox(height: 15),
               Row(
                 children: [
-                  Expanded(child: _buildStoreInputField(controller: expiryDateController, hint: "MM/YY", icon: Icons.date_range)),
+                  Expanded(child: _buildStoreInputField(controller: expiryDateController, hint: "expiry_hint".tr(), icon: Icons.date_range)),
                   const SizedBox(width: 15),
-                  Expanded(child: _buildStoreInputField(controller: cvvController, hint: "CVV", icon: Icons.lock_person_outlined, isNumber: true)),
+                  Expanded(child: _buildStoreInputField(controller: cvvController, hint: "cvv_hint".tr(), icon: Icons.lock_person_outlined, isNumber: true)),
                 ],
               ),
               const Divider(height: 40),

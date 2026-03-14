@@ -69,21 +69,18 @@ class TenJdChallengeScreen extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         
-        // Simulating "Affordable" deals or Bundles
-        // Logic: Show deals that mention small amounts or are categorized as affordable
         final affordableDeals = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final product = (data['product'] ?? "").toString().toLowerCase();
           final discount = (data['discount'] ?? "").toString().toLowerCase();
           
-          // Heuristic for the challenge: products or discounts mentioning 1-10 JOD
           return product.contains('10') || product.contains('5') || 
                  discount.contains('10') || discount.contains('5') ||
                  data['category'] == 'cat_food' || data['category'] == 'cat_cafes';
         }).toList();
 
         if (affordableDeals.isEmpty) {
-          return const Center(child: Text("Coming Soon..."));
+          return Center(child: Text("coming_soon".tr()));
         }
 
         return ListView.builder(
@@ -92,7 +89,6 @@ class TenJdChallengeScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           itemCount: (affordableDeals.length / 2).ceil(),
           itemBuilder: (context, index) {
-            // Grouping into "Bundles" of 2 items
             int firstIdx = index * 2;
             int secondIdx = firstIdx + 1;
             
@@ -149,7 +145,7 @@ class TenJdChallengeScreen extends StatelessWidget {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               onPressed: () {},
-              child: const Text("احصل عليهم هسة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text("get_them_now".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -168,7 +164,7 @@ class TenJdChallengeScreen extends StatelessWidget {
               style: const TextStyle(color: Colors.black87, fontSize: 14),
               children: [
                 TextSpan(text: "$product ", style: const TextStyle(fontWeight: FontWeight.bold)),
-                TextSpan(text: "من $store", style: const TextStyle(color: Colors.grey)),
+                TextSpan(text: "from_store".tr(args: [store]), style: const TextStyle(color: Colors.grey)),
               ],
             ),
           ),

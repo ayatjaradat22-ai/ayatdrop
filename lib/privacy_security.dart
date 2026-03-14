@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
+import 'package:easy_localization/easy_localization.dart';
 
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
 
-  static const Color dropRed = Color(0xFFFF1111); // الأحمر الموحد للهوية
+  static const Color dropRed = Color(0xFFFF1111);
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +17,8 @@ class ContactUsScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Contact Us",
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20)),
+        title: Text("contact_us".tr(),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -26,8 +26,6 @@ class ContactUsScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 30),
-
-            // الهيدر البصري (أيقونة التواصل)
             Center(
               child: Container(
                 padding: const EdgeInsets.all(25),
@@ -39,38 +37,36 @@ class ContactUsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text("How can we help you?",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+            Text("how_can_we_help".tr(),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            Text("Our team is here to support you 24/7",
+            Text("support_24_7".tr(),
                 style: TextStyle(color: Colors.grey[500], fontSize: 15)),
 
             const SizedBox(height: 45),
 
-            // خيارات التواصل (الكبسولات)
             _buildContactMethod(
-              title: "Customer Support",
-              subtitle: "Chat with us right now",
+              title: "customer_support".tr(),
+              subtitle: "chat_now_subtitle".tr(),
               icon: Icons.chat_bubble_outline_rounded,
               onTap: () {},
             ),
             _buildContactMethod(
-              title: "Email Us",
-              subtitle: "support@drop-app.com",
+              title: "email_us_title".tr(),
+              subtitle: "email_us_subtitle".tr(),
               icon: Icons.mail_outline_rounded,
               onTap: () {},
             ),
             _buildContactMethod(
-              title: "WhatsApp",
-              subtitle: "+1 234 567 890",
+              title: "whatsapp_label".tr(),
+              subtitle: "whatsapp_subtitle".tr(),
               icon: Icons.phone_android_rounded,
               onTap: () {},
             ),
 
             const SizedBox(height: 40),
 
-            // وسائل التواصل الاجتماعي في الأسفل
-            Text("Follow us on social media",
+            Text("follow_us_social".tr(),
                 style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 20),
             Row(
@@ -78,9 +74,9 @@ class ContactUsScreen extends StatelessWidget {
               children: [
                 _buildSocialIcon(Icons.facebook_rounded),
                 const SizedBox(width: 20),
-                _buildSocialIcon(Icons.camera_alt_outlined), // Instagram
+                _buildSocialIcon(Icons.camera_alt_outlined),
                 const SizedBox(width: 20),
-                _buildSocialIcon(Icons.alternate_email_rounded), // X/Twitter
+                _buildSocialIcon(Icons.alternate_email_rounded),
               ],
             ),
             const SizedBox(height: 40),

@@ -10,9 +10,9 @@ import 'drop.dart';
 import 'saved_addresses.dart';
 import 'FAQ.dart';
 import 'contactus.dart';
-import 'store_home.dart';
 import 'saved_stores.dart';
 import 'premium.dart';
+import 'store_home.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -35,7 +35,7 @@ class _AccountScreenState extends State<AccountScreen> {
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
-        title: const Text("drop", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
+        title: Text("app_name".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
@@ -66,18 +66,19 @@ class _AccountScreenState extends State<AccountScreen> {
 
                 const SizedBox(height: 20),
 
-                // زر لوحة تحكم المتجر (يظهر فقط إذا كان المستخدم متجراً)
+                // زر لوحة تحكم المتجر: لن يظهر إلا إذا كان دور المستخدم 'store'
                 if (role == 'store')
                   _buildSpecialDashboardCard(
                     title: "store_dashboard".tr(),
                     subtitle: "manage_deals_and_subs".tr(),
                     icon: Icons.storefront_rounded,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreHomeScreen())),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreHomeScreen()));
+                    },
                   ),
 
                 if (role == 'store') const SizedBox(height: 15),
 
-                // زر البريميوم (ظاهر لجميع الحسابات تحت زر المتجر)
                 _buildSpecialDashboardCard(
                   title: "premium_title".tr(),
                   subtitle: "premium_subtitle".tr(),

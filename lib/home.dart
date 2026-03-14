@@ -133,7 +133,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("drop", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+              Text("app_name".tr(), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
               Row(
                 children: [
                   IconButton(
@@ -335,12 +335,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 if (newPrice.isNotEmpty)
-                  Text("$newPrice JOD", style: const TextStyle(color: dropRed, fontWeight: FontWeight.w900, fontSize: 18))
+                  Text("$newPrice ${"jod_currency".tr()}", style: const TextStyle(color: dropRed, fontWeight: FontWeight.w900, fontSize: 18))
                 else
-                  Text("$discount% OFF", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text("$discount% ${"off_text".tr()}", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
                 
                 if (oldPrice.isNotEmpty)
-                  Text("$oldPrice JOD", style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 12)),
+                  Text("$oldPrice ${"jod_currency".tr()}", style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 12)),
                 
                 StreamBuilder<DocumentSnapshot>(
                   stream: FirebaseFirestore.instance
@@ -412,7 +412,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
                   child: Text(
-                    distanceKm > 0 ? "${distanceKm.toStringAsFixed(1)} km" : "موقع المحل",
+                    distanceKm > 0 ? "near_you".tr(args: [distanceKm.toStringAsFixed(1)]) : "store_location_hint".tr(),
                     style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -421,15 +421,15 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             const SizedBox(height: 30),
             const Divider(),
             const SizedBox(height: 20),
-            const Text("العرض الحالي:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("current_deal".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 10),
             Row(
               children: [
                 if (data['newPrice'] != null)
-                  Text("${data['newPrice']} JOD", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: dropRed)),
+                  Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: dropRed)),
                 const SizedBox(width: 15),
                 if (data['oldPrice'] != null)
-                  Text("${data['oldPrice']} JOD", style: const TextStyle(fontSize: 20, color: Colors.grey, decoration: TextDecoration.lineThrough)),
+                  Text("${data['oldPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 20, color: Colors.grey, decoration: TextDecoration.lineThrough)),
               ],
             ),
             const SizedBox(height: 30),
@@ -442,7 +442,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   const SizedBox(width: 15),
                   Expanded(
                     child: Text(
-                      data['location'] ?? "شارع مكة، عمان - الأردن",
+                      data['location'] ?? "location_hint".tr(),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -466,7 +466,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     wrapper.setIndex(1); // فتح الخريطة مباشرة
                   }
                 },
-                child: const Text("ورجيني مكانه عالخريطة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                child: Text("show_on_map".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
               ),
             ),
             const SizedBox(height: 20),
@@ -603,10 +603,10 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           color: Colors.grey[50], 
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
-            BoxShadow(
+            const BoxShadow(
               color: Colors.white,
               blurRadius: 15,
-              offset: const Offset(-8, -8),
+              offset: Offset(-8, -8),
             ),
             BoxShadow(
               color: Colors.black.withOpacity(0.12), 
@@ -638,7 +638,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 13), 
+              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 13), 
             ),
           ],
         ),
@@ -709,7 +709,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("total_saved_title".tr(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              const Text("0.000 JOD", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              Text("0.000 ${"jod_currency".tr()}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             ],
           )
         ],

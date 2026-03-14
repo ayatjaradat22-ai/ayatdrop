@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});
@@ -8,13 +9,12 @@ class PaymentMethodsScreen extends StatefulWidget {
 }
 
 class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
-  // الأحمر المعتمد لتطبيق Drop
   static const Color dropRed = Color(0xFFFF1111);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // خلفية بيضاء نقية لفخامة التصميم
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -22,9 +22,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Payment Methods",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+        title: Text(
+          "payment_methods".tr(),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
         centerTitle: true,
       ),
@@ -34,41 +34,39 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           children: [
             const SizedBox(height: 10),
-            const Text(
-              "Secure your transactions with our trusted partners.",
+            Text(
+              "payment_security_note".tr(),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
+              style: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 30),
 
-            // 1. بطاقة الكريدت كارد (مفتوحة افتراضياً)
             _buildModernPaymentTile(
-              title: "Credit / Debit Card",
-              subtitle: "Visa, Mastercard, Amex",
+              title: "credit_debit_card".tr(),
+              subtitle: "card_networks".tr(),
               icon: Icons.credit_card_rounded,
               isExpanded: true,
               children: [
                 const SizedBox(height: 10),
-                _buildModernTextField("Card Number", Icons.credit_card_rounded),
+                _buildModernTextField("card_number_hint".tr(), Icons.credit_card_rounded),
                 const SizedBox(height: 15),
                 Row(
                   children: [
-                    Expanded(child: _buildModernTextField("MM/YY", Icons.calendar_today_rounded)),
+                    Expanded(child: _buildModernTextField("expiry_hint".tr(), Icons.calendar_today_rounded)),
                     const SizedBox(width: 15),
-                    Expanded(child: _buildModernTextField("CVV", Icons.lock_person_rounded)),
+                    Expanded(child: _buildModernTextField("cvv_hint".tr(), Icons.lock_person_rounded)),
                   ],
                 ),
                 const SizedBox(height: 20),
-                _buildDropButton("Save & Link Card"),
+                _buildDropButton("save_link_card".tr()),
               ],
             ),
 
             const SizedBox(height: 15),
 
-            // 2. آبل باي - Apple Pay
             _buildModernPaymentTile(
-              title: "Apple Pay",
-              subtitle: "Express Checkout",
+              title: "apple_pay".tr(),
+              subtitle: "express_checkout".tr(),
               icon: Icons.apple_rounded,
               children: [
                 Container(
@@ -78,36 +76,34 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.face_unlock_rounded, color: Colors.black), // تم تصحيح الأيقونة هنا
-                      SizedBox(width: 12),
-                      Text("Pay faster with FaceID", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Icon(Icons.face_unlock_rounded, color: Colors.black),
+                      const SizedBox(width: 12),
+                      Text("pay_faster_faceid".tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 15),
-                _buildDropButton("Set as Primary"),
+                _buildDropButton("set_as_primary".tr()),
               ],
             ),
 
             const SizedBox(height: 15),
 
-            // 3. باي بال - PayPal
             _buildModernPaymentTile(
-              title: "PayPal",
-              subtitle: "Secure online payment",
+              title: "paypal".tr(),
+              subtitle: "secure_online_payment".tr(),
               icon: Icons.account_balance_wallet_rounded,
               children: [
-                _buildModernTextField("PayPal Email", Icons.alternate_email_rounded),
+                _buildModernTextField("paypal_email_hint".tr(), Icons.alternate_email_rounded),
                 const SizedBox(height: 15),
-                _buildDropButton("Connect PayPal Account"),
+                _buildDropButton("connect_paypal".tr()),
               ],
             ),
 
             const SizedBox(height: 40),
 
-            // زر إضافة طريقة دفع جديدة
             _buildAddNewMethod(),
             const SizedBox(height: 40),
           ],
@@ -116,7 +112,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     );
   }
 
-  // ودجت بناء بطاقة الدفع القابلة للتوسع
   Widget _buildModernPaymentTile({
     required String title,
     required String subtitle,
@@ -153,7 +148,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     );
   }
 
-  // ودجت حقول الإدخال بتصميم مودرن
   Widget _buildModernTextField(String hint, IconData icon) {
     return Container(
       decoration: BoxDecoration(
@@ -174,7 +168,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     );
   }
 
-  // الزر الأحمر الأساسي للتطبيق
   Widget _buildDropButton(String label) {
     return SizedBox(
       width: double.infinity,
@@ -191,12 +184,11 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     );
   }
 
-  // زر الإضافة الشفاف
   Widget _buildAddNewMethod() {
     return OutlinedButton.icon(
       onPressed: () {},
       icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.black87),
-      label: const Text("Add New Method", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+      label: Text("add_new_method".tr(), style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 18),
         side: BorderSide(color: Colors.grey.shade300),

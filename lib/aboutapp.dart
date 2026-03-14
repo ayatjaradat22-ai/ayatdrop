@@ -67,7 +67,7 @@ class AboutAppScreen extends StatelessWidget {
 
                 const SizedBox(height: 40),
 
-                _buildDeveloperCard(["Ayat Jaradat", "Aya Shnnaq"]),
+                _buildDeveloperCard(["Ayat Jaradat"]),
 
                 const SizedBox(height: 40),
                 Text(
@@ -150,15 +150,22 @@ class AboutAppScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: dropRed,
         borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: dropRed.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Text(
             "developed_by".tr().toUpperCase(),
             style: const TextStyle(
-              color: Colors.white54,
+              color: Colors.white70,
               fontSize: 11,
               fontWeight: FontWeight.w900,
               letterSpacing: 2,
@@ -166,18 +173,18 @@ class AboutAppScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: names.map((name) => Column(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.white10,
-                  radius: 20,
-                  child: Text(name[0], style: const TextStyle(color: Colors.white)),
+                  backgroundColor: Colors.white24,
+                  radius: 25,
+                  child: Text(name[0], style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   name,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ],
             )).toList(),

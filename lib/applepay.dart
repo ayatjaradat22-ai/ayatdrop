@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ApplePayScreen extends StatelessWidget {
   const ApplePayScreen({super.key});
 
-  // ألوان الهوية البصرية لـ Drop و Apple
   static const Color premiumBlack = Color(0xFF121212);
   static const Color appleGrey = Color(0xFFF2F2F7);
 
@@ -24,9 +24,9 @@ class ApplePayScreen extends StatelessWidget {
           icon: const Icon(Icons.close_rounded, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Wallet",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18),
+        title: Text(
+          "wallet_title".tr(),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18),
         ),
         actions: [
           IconButton(
@@ -43,20 +43,13 @@ class ApplePayScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Column(
                 children: [
-                  // 1. البطاقة السوداء الفاخرة
                   _buildAppleCard(screenWidth),
-
                   const SizedBox(height: 35),
-
-                  // 2. الرصيد الإجمالي بتصميم عصري
                   _buildBalanceSection(currentUser, screenWidth),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // 3. قائمة المعاملات
             _buildTransactionList(currentUser),
           ],
         ),
@@ -85,7 +78,6 @@ class ApplePayScreen extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // شعار آبل خفيف في الخلفية
           Positioned(
             right: -20,
             bottom: -20,
@@ -97,10 +89,10 @@ class ApplePayScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.apple, color: Colors.white, size: 32),
-                    Text(" Card", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600)),
+                    const Icon(Icons.apple, color: Colors.white, size: 32),
+                    Text("apple_card_label".tr(), style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600)),
                   ],
                 ),
                 Column(
@@ -141,7 +133,7 @@ class ApplePayScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Total Balance", style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)),
+                  Text("total_balance".tr(), style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Text("\$$balance", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
                 ],
@@ -154,7 +146,7 @@ class ApplePayScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
                   elevation: 0,
                 ),
-                child: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text("pay_button".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -169,11 +161,11 @@ class ApplePayScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Latest Activity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-              Text("See All", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+              Text("latest_activity".tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              Text("see_all".tr(), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 20),
@@ -186,10 +178,10 @@ class ApplePayScreen extends StatelessWidget {
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(
+                return Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Text("No transactions yet.", style: TextStyle(color: Colors.grey)),
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Text("no_transactions".tr(), style: const TextStyle(color: Colors.grey)),
                   ),
                 );
               }
@@ -204,7 +196,7 @@ class ApplePayScreen extends StatelessWidget {
                   return _buildTransactionItem(
                     doc['status'] ?? "Transaction",
                     doc['amount']?.toString() ?? "0.00",
-                    doc['type'] ?? "expense", // نفترض وجود نوع لتغيير الأيقونة
+                    doc['type'] ?? "expense", 
                   );
                 },
               );
@@ -233,7 +225,7 @@ class ApplePayScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-              const Text("Today", style: TextStyle(color: Colors.grey, fontSize: 12)),
+              Text("today".tr(), style: const TextStyle(color: Colors.grey, fontSize: 12)),
             ],
           ),
         ),

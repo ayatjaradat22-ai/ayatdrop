@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'database_service.dart';
 import 'store_home.dart';
 
@@ -23,20 +24,18 @@ class _StoreRegistrationScreenState extends State<StoreRegistrationScreen> {
 
   Future<void> registerStore() async {
     if (storeNameController.text.isEmpty || emailController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("fill_all_fields_error".tr())));
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // 1. إنشاء حساب المتجر في Auth
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      // 2. حفظ بيانات المتجر في Firestore
       if (userCredential.user != null) {
         await DatabaseService().saveStoreToFirestore(
           uid: userCredential.user!.uid,
@@ -71,26 +70,26 @@ class _StoreRegistrationScreenState extends State<StoreRegistrationScreen> {
             children: [
               const Icon(Icons.store_rounded, size: 80, color: dropRed),
               const SizedBox(height: 20),
-              const Text("Store Registration", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: dropRed)),
+              Text("store_registration_title".tr(), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: dropRed)),
               const SizedBox(height: 40),
-              _buildField(storeNameController, "Store Name", Icons.business),
+              _buildField(storeNameController, "store_name_hint".tr(), Icons.business),
               const SizedBox(height: 15),
-              _buildField(emailController, "Email", Icons.email),
+              _buildField(emailController, "email_hint".tr(), Icons.email),
               const SizedBox(height: 15),
-              _buildField(passwordController, "Password", Icons.lock, isPass: true),
+              _buildField(passwordController, "password_hint".tr(), Icons.lock, isPass: true),
               const SizedBox(height: 15),
-              _buildField(categoryController, "Category", Icons.category),
+              _buildField(categoryController, "select_category_hint".tr(), Icons.category),
               const SizedBox(height: 15),
-              _buildField(locationController, "Location", Icons.location_on),
+              _buildField(locationController, "store_location_hint".tr(), Icons.location_on),
               const SizedBox(height: 15),
-              _buildField(paymentController, "Payment Info", Icons.payment),
+              _buildField(paymentController, "payment_info".tr(), Icons.payment),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity, height: 55,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                   onPressed: registerStore,
-                  child: const Text("Register My Store", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: Text("register_my_store_button".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],

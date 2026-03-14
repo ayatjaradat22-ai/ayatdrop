@@ -169,11 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.grey.shade200)),
         ),
         onPressed: () {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (route) => false,
-          );
+          _showLogoutDialog(context);
         },
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -183,6 +179,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text("logout_button".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("logout_title".tr()),
+        content: Text("logout_confirmation".tr()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
+          TextButton(
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+            child: Text("logout_title".tr(), style: const TextStyle(color: dropRed)),
+          ),
+        ],
       ),
     );
   }

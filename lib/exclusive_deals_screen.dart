@@ -100,7 +100,6 @@ class ExclusiveDealsScreen extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
                 ),
                 const SizedBox(height: 20),
-                // زر وهمي للباركود أو الكود
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 15),
@@ -134,11 +133,11 @@ class ExclusiveDealsScreen extends StatelessWidget {
         children: [
           Icon(Icons.stars_rounded, size: 80, color: Colors.grey[200]),
           const SizedBox(height: 15),
-          const Text("Coming Soon! 🚀", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 18)),
+          Text("coming_soon".tr(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40),
-            child: Text("We are working on exclusive deals just for you.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text("exclusive_deals_soon".tr(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
           ),
         ],
       ),

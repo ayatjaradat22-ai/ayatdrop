@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'store_signup.dart';
+import 'home.dart';
 
 class StoreLoginScreen extends StatefulWidget {
   const StoreLoginScreen({super.key});
@@ -11,11 +14,69 @@ class StoreLoginScreen extends StatefulWidget {
 
 class _StoreLoginScreenState extends State<StoreLoginScreen> {
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   static const Color dropRed = Color(0xFFFF0000);
   static const Color scaffoldBg = Color(0xFFF9F6F2);
+
+  Future<void> _loginStore() async {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("fill_all_fields_error".tr()), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. تسجيل الدخول عبر Firebase Auth
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      // 2. التحقق من دور المستخدم في Firestore للتأكد أنه متجر
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (userDoc.exists) {
+        String role = userDoc.get('role') ?? 'user';
+        if (role == 'store') {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainWrapper()),
+          );
+        } else {
+          // إذا كان حساب عادي يحاول الدخول من بوابة المتاجر
+          await FirebaseAuth.instance.signOut();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("This account is not registered as a store."), backgroundColor: Colors.orange),
+          );
+        }
+      } else {
+        _showError("error_occurred".tr());
+      }
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? "login_failed".tr());
+    } catch (e) {
+      _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +91,9 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: dropRed))
+        : SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
@@ -79,9 +142,7 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
                     backgroundColor: dropRed,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  onPressed: () {
-                    // Login logic
-                  },
+                  onPressed: _loginStore,
                   child: Text(
                     "login_button".tr(),
                     style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class SavedAddressesScreen extends StatelessWidget {
   const SavedAddressesScreen({super.key});
 
-  static const Color dropRed = Color(0xFFFF1111); // الأحمر الموحد للهوية
+  static const Color dropRed = Color(0xFFFF1111);
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -17,9 +18,9 @@ class SavedAddressesScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Saved Addresses",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+        title: Text(
+          "saved_addresses".tr(),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: SafeArea(
@@ -30,25 +31,23 @@ class SavedAddressesScreen extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.only(left: 5, bottom: 20),
+                   Padding(
+                    padding: const EdgeInsets.only(left: 5, bottom: 20),
                     child: Text(
-                      "Where should we drop your deals?",
-                      style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
+                      "address_subtitle".tr(),
+                      style: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
                     ),
                   ),
 
-                  // بطاقة عنوان المنزل
                   _buildAddressTile(
-                    title: "Home",
+                    title: "home_label".tr(),
                     address: "Address, Vancouver, BC V6B 4G1",
                     icon: Icons.home_rounded,
                     isDefault: true,
                   ),
 
-                  // بطاقة عنوان العمل
                   _buildAddressTile(
-                    title: "Office",
+                    title: "office_label".tr(),
                     address: "725 Granville St, Vancouver, BC V7Y 1G5",
                     icon: Icons.work_rounded,
                     isDefault: false,
@@ -57,7 +56,6 @@ class SavedAddressesScreen extends StatelessWidget {
               ),
             ),
 
-            // زر إضافة عنوان جديد في الأسفل بشكل ثابت
             Padding(
               padding: const EdgeInsets.all(25.0),
               child: SizedBox(
@@ -66,8 +64,8 @@ class SavedAddressesScreen extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.add_location_alt_rounded, color: dropRed, size: 20),
-                  label: const Text("Add New Address",
-                      style: TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 16)),
+                  label: Text("add_new_address".tr(),
+                      style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 16)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: dropRed, width: 1.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -125,7 +123,7 @@ class SavedAddressesScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(color: dropRed, borderRadius: BorderRadius.circular(5)),
-                        child: const Text("DEFAULT", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                        child: Text("default_badge".tr(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                       ),
                     ]
                   ],
