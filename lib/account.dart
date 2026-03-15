@@ -29,7 +29,7 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Theme.of(context).brightness == Brightness.light ? const Color(0xFFF8F9FA) : Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: dropRed,
         elevation: 0,
@@ -66,7 +66,6 @@ class _AccountScreenState extends State<AccountScreen> {
 
                 const SizedBox(height: 20),
 
-                // زر لوحة تحكم المتجر: لن يظهر إلا إذا كان دور المستخدم 'store'
                 if (role == 'store')
                   _buildSpecialDashboardCard(
                     title: "store_dashboard".tr(),
@@ -113,7 +112,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 }),
 
                 _buildActionCard("settings".tr(), Icons.settings_outlined, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingScreen()));
                 }),
 
                 const SizedBox(height: 40),
@@ -131,7 +130,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         ),
-                        child: Text("edit_profile".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: Text("edit_profile_title".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 20),
@@ -221,7 +220,7 @@ class _AccountScreenState extends State<AccountScreen> {
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
         ),
@@ -248,7 +247,7 @@ class _AccountScreenState extends State<AccountScreen> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.grey.withOpacity(0.1)),
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'premium.dart';
 
 class PriceComparisonScreen extends StatefulWidget {
   const PriceComparisonScreen({super.key});
@@ -10,135 +12,174 @@ class PriceComparisonScreen extends StatefulWidget {
 }
 
 class _PriceComparisonScreenState extends State<PriceComparisonScreen> {
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _itemController = TextEditingController();
+  final List<String> _shoppingCart = [];
+  bool _isPremium = false;
   static const Color dropRed = Color(0xFFFF1111);
-  String _query = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPremiumStatus();
+  }
+
+  Future<void> _checkPremiumStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    if (doc.exists && mounted) {
+      setState(() => _isPremium = doc.data()?['isPremium'] ?? false);
+    }
+  }
+
+  void _addItem() {
+    if (!_isPremium && _shoppingCart.length >= 1) {
+      _showPremiumRequiredDialog();
+      return;
+    }
+    if (_itemController.text.trim().isNotEmpty) {
+      setState(() {
+        _shoppingCart.add(_itemController.text.trim());
+        _itemController.clear();
+      });
+    }
+  }
+
+  void _showPremiumRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("premium_feature".tr()),
+        content: Text("basket_comparison_desc".tr()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: dropRed),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));
+            },
+            child: Text("upgrade_now".tr(), style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        title: Text("price_comparison_title".tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          "compare_before_go".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (val) => setState(() => _query = val.toLowerCase()),
-                decoration: InputDecoration(
-                  hintText: "compare_hint".tr(),
-                  prefixIcon: const Icon(Icons.search, color: dropRed),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15),
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _itemController,
+                    decoration: InputDecoration(
+                      hintText: "compare_hint".tr(),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                IconButton.filled(
+                  onPressed: _addItem,
+                  icon: const Icon(Icons.add_shopping_cart),
+                  style: IconButton.styleFrom(backgroundColor: dropRed),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: _query.isEmpty 
-              ? _buildInitialState() 
-              : _buildComparisonList(),
-          ),
+          if (_shoppingCart.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Wrap(
+                spacing: 8,
+                children: _shoppingCart.map((item) => Chip(
+                  label: Text(item),
+                  onDeleted: () => setState(() => _shoppingCart.remove(item)),
+                  deleteIcon: const Icon(Icons.close, size: 14),
+                )).toList(),
+              ),
+            ),
+            const Divider(),
+            Expanded(child: _buildComparisonLogic()),
+          ] else
+            Expanded(child: Center(child: Text("add_items_to_compare".tr(), style: const TextStyle(color: Colors.grey)))),
         ],
       ),
     );
   }
 
-  Widget _buildInitialState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.shopping_basket_outlined, size: 100, color: Colors.grey[200]),
-          const SizedBox(height: 20),
-          Text(
-            "compare_hint".tr(),
-            style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComparisonList() {
+  Widget _buildComparisonLogic() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('deals').snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: dropRed));
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-        // فحص العروض التي تطابق كلمة البحث
-        var matchingDeals = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final product = (data['product'] ?? "").toString().toLowerCase();
-          return product.contains(_query);
-        }).toList();
+        Map<String, double> storeTotals = {};
+        Map<String, int> storeMatchCount = {};
 
-        if (matchingDeals.isEmpty) {
-          return Center(child: Text("no_search_results".tr(), style: const TextStyle(color: Colors.grey)));
+        for (var item in _shoppingCart) {
+          for (var doc in snapshot.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final productName = (data['product'] ?? "").toString().toLowerCase();
+            final storeName = data['storeName'] ?? "Unknown";
+            final price = double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
+
+            if (productName.contains(item.toLowerCase())) {
+              storeTotals[storeName] = (storeTotals[storeName] ?? 0) + price;
+              storeMatchCount[storeName] = (storeMatchCount[storeName] ?? 0) + 1;
+            }
+          }
         }
 
-        // محاولة استخراج السعر من نص الخصم (لأننا لم نضف حقل سعر مخصص بعد)
-        // سنفترض أن صاحب المتجر قد يكتب السعر في حقل الخصم أو المنتج
-        // للتبسيط في هذا الإصدار، سنرتبهم حسب "أفضلية العرض"
-        
+        var sortedStores = storeTotals.keys.toList()
+          ..sort((a, b) => storeTotals[a]!.compareTo(storeTotals[b]!));
+
+        if (sortedStores.isEmpty) {
+          return Center(child: Text("no_deals_found_for_basket".tr()));
+        }
+
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: matchingDeals.length,
+          padding: const EdgeInsets.all(20),
+          itemCount: sortedStores.length,
           itemBuilder: (context, index) {
-            final data = matchingDeals[index].data() as Map<String, dynamic>;
-            bool isCheapest = index == 0; // افتراضياً أول واحد هو الأفضل (تحتاج لمنطق سعر حقيقي)
+            final store = sortedStores[index];
+            final total = storeTotals[store];
+            final matches = storeMatchCount[store];
+            final isBest = index == 0;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 15),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isBest ? Colors.green.withOpacity(0.05) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isCheapest ? dropRed.withOpacity(0.3) : Colors.grey.shade100),
-                boxShadow: [
-                  if (isCheapest) BoxShadow(color: dropRed.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
-                ],
+                border: Border.all(color: isBest ? Colors.green : Colors.grey.shade200),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (isCheapest)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: BoxDecoration(color: dropRed, borderRadius: BorderRadius.circular(10)),
-                            child: Text("cheapest_place".tr(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                          ),
-                        Text(data['storeName'] ?? "Store", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-                        const SizedBox(height: 4),
-                        Text(data['product'] ?? "", style: TextStyle(color: Colors.grey[600])),
-                      ],
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(store, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      Text("matches_count".tr(args: [matches.toString(), _shoppingCart.length.toString()]),
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    ],
                   ),
-                  Text(
-                    data['discount'] ?? "", 
-                    style: const TextStyle(color: dropRed, fontWeight: FontWeight.w900, fontSize: 20)
-                  ),
+                  Text("${total?.toStringAsFixed(2)} JOD", 
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: isBest ? Colors.green : Colors.black)),
                 ],
               ),
             );

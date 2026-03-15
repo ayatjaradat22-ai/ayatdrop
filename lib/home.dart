@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
 import 'map.dart';
 import 'ai_guide_screen.dart';
 import 'account.dart';
@@ -13,6 +14,8 @@ import 'exclusive_deals_screen.dart';
 import 'alert_me_screen.dart';
 import 'ten_jd_challenge_screen.dart';
 import 'smart_shopping_list_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'premium.dart';
 
 class MainWrapper extends StatefulWidget {
   final int initialIndex;
@@ -25,13 +28,7 @@ class MainWrapper extends StatefulWidget {
 class MainWrapperState extends State<MainWrapper> {
   late int _selectedIndex;
   static const Color dropRed = Color(0xFFFF1111);
-
-  final List<Widget> _pages = [
-    const HomeScreenContent(),
-    const MapScreen(),
-    const AiGuideScreen(),
-    const AccountScreen(),
-  ];
+  LatLng? _mapTargetLocation;
 
   @override
   void initState() {
@@ -39,24 +36,40 @@ class MainWrapperState extends State<MainWrapper> {
     _selectedIndex = widget.initialIndex;
   }
 
-  void setIndex(int index) {
-    setState(() => _selectedIndex = index);
+  void setIndex(int index, {LatLng? location}) {
+    setState(() {
+      _selectedIndex = index;
+      if (location != null) {
+        _mapTargetLocation = location;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      const HomeScreenContent(),
+      MapScreen(targetLocation: _mapTargetLocation),
+      const AiGuideScreen(),
+      const AccountScreen(),
+    ];
+
     return Scaffold(
-      backgroundColor: Colors.white,
       body: IndexedStack(
         index: _selectedIndex,
-        children: _pages,
+        children: pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: dropRed,
         unselectedItemColor: Colors.grey.shade400,
         currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+            if (index != 1) _mapTargetLocation = null;
+          });
+        },
         items: [
           BottomNavigationBarItem(icon: const Icon(Icons.home_filled), label: "home_nav".tr()),
           BottomNavigationBarItem(icon: const Icon(Icons.map_rounded), label: "map_nav".tr()),
@@ -80,8 +93,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   static const Color lightGreen = Color(0xFFF1F8E9);
   String? _selectedCategory;
   final TextEditingController _searchController = TextEditingController();
-  
-  // موقع افتراضي للمستخدم (عمان)
   final LatLng _userLocation = const LatLng(31.9539, 35.9106);
 
   @override
@@ -154,7 +165,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             builder: (context, snapshot) {
               String name = "saver_default".tr();
               if (snapshot.hasData && snapshot.data!.exists) {
-                name = snapshot.data!.get('name') ?? "saver_default".tr();
+                final data = snapshot.data!.data() as Map<String, dynamic>?;
+                name = data?['name'] ?? "saver_default".tr();
               }
               return Text("hello_user".tr(args: [name]), style: const TextStyle(color: Colors.white70, fontSize: 16));
             },
@@ -208,60 +220,84 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   }
 
   Widget _buildDealsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('deals').orderBy('createdAt', descending: true).snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: dropRed));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyState();
+    final user = FirebaseAuth.instance.currentUser;
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
+      builder: (context, userSnapshot) {
+        bool isPremium = false;
+        if (userSnapshot.hasData && userSnapshot.data!.exists) {
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+          isPremium = userData?['isPremium'] ?? false;
         }
 
-        final filteredDocs = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final category = data['category']?.toString();
-          final productName = data['product']?.toString().toLowerCase() ?? "";
-          final storeName = data['storeName']?.toString().toLowerCase() ?? "";
-          final searchText = _searchController.text.toLowerCase();
-
-          bool matchesCategory = true;
-          if (_selectedCategory != null) {
-            matchesCategory = (category == _selectedCategory);
-            if (!matchesCategory) {
-              if (_selectedCategory == 'cat_cafes') {
-                matchesCategory = productName.contains('قهوة') || productName.contains('coffee') || productName.contains('moca') || storeName.contains('كافيه');
-              } else if (_selectedCategory == 'cat_food') {
-                matchesCategory = productName.contains('اكل') || productName.contains('وجبة') || productName.contains('burger');
-              }
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('deals').orderBy('createdAt', descending: true).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: dropRed));
             }
-          }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return _buildEmptyState();
+            }
 
-          bool matchesSearch = true;
-          if (searchText.isNotEmpty) {
-            matchesSearch = productName.contains(searchText) || storeName.contains(searchText);
-          }
+            final filteredDocs = snapshot.data!.docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+              
+              // 1. فلترة العروض المنتهية (لا تظهر للمستخدمين)
+              if (data['expiryTime'] != null) {
+                DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
+                if (expiry.isBefore(DateTime.now())) return false; // العرض انتهى
+              }
 
-          return matchesCategory && matchesSearch;
-        }).toList();
+              if (!isPremium) {
+                final difference = DateTime.now().difference(createdAt);
+                if (difference.inHours < 1) return false;
+              }
 
-        if (filteredDocs.isEmpty) return _buildEmptyState();
+              final category = data['category']?.toString();
+              final productName = data['product']?.toString().toLowerCase() ?? "";
+              final storeName = data['storeName']?.toString().toLowerCase() ?? "";
+              final searchText = _searchController.text.toLowerCase();
 
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: filteredDocs.length,
-          itemBuilder: (context, index) {
-            return _buildDealCard(filteredDocs[index]);
+              bool matchesCategory = true;
+              if (_selectedCategory != null) {
+                matchesCategory = (category == _selectedCategory);
+                if (!matchesCategory) {
+                  if (_selectedCategory == 'cat_cafes') {
+                    matchesCategory = productName.contains('قهوة') || productName.contains('coffee') || productName.contains('moca') || storeName.contains('كافيه');
+                  } else if (_selectedCategory == 'cat_food') {
+                    matchesCategory = productName.contains('اكل') || productName.contains('وجبة') || productName.contains('burger');
+                  }
+                }
+              }
+
+              bool matchesSearch = true;
+              if (searchText.isNotEmpty) {
+                matchesSearch = productName.contains(searchText) || storeName.contains(searchText);
+              }
+
+              return matchesCategory && matchesSearch;
+            }).toList();
+
+            if (filteredDocs.isEmpty) return _buildEmptyState();
+
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredDocs.length,
+              itemBuilder: (context, index) {
+                return _buildDealCard(filteredDocs[index], isPremium);
+              },
+            );
           },
         );
-      },
+      }
     );
   }
 
-  Widget _buildDealCard(DocumentSnapshot doc) {
+  Widget _buildDealCard(DocumentSnapshot doc, bool isPremium) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    String? category = data['category']?.toString();
     final productName = data['product'] ?? "Product";
     final storeName = data['storeName'] ?? "Store";
     final discount = data['discount'] ?? "0";
@@ -269,6 +305,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     final newPrice = data['newPrice']?.toString() ?? "";
     final user = FirebaseAuth.instance.currentUser;
     
+    double discountVal = double.tryParse(discount.toString()) ?? 0;
+    bool isHot = discountVal > 10;
+
     String timeLeftStr = "";
     if (data['expiryTime'] != null) {
       DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
@@ -282,82 +321,118 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       }
     }
 
-    IconData categoryIcon = Icons.local_offer_rounded;
-    if (category == 'cat_food' || productName.toString().toLowerCase().contains('burger')) {
-      categoryIcon = Icons.restaurant_rounded;
-    } else if (category == 'cat_cafes' || productName.toString().toLowerCase().contains('moca')) {
-      categoryIcon = Icons.local_cafe_rounded;
-    } else if (category == 'cat_fashion') {
-      categoryIcon = Icons.shopping_bag_rounded;
-    } else if (category == 'cat_tech') {
-      categoryIcon = Icons.devices_rounded;
-    }
-
     return GestureDetector(
       onTap: () => _showDealDetails(doc),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        padding: const EdgeInsets.all(15),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isHot ? Colors.orange.withOpacity(0.05) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          border: isHot ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1.5) : null,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+          ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: dropRed.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(categoryIcon, color: dropRed),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Text(storeName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w900, fontSize: 16))),
+              ],
             ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(storeName, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                  if (timeLeftStr.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isHot ? Colors.orange.withOpacity(0.2) : dropRed.withOpacity(0.1), 
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(_getCategoryIcon(data['category'], productName), color: dropRed, size: 22),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Icon(Icons.timer_outlined, size: 12, color: dropRed.withOpacity(0.7)),
-                          const SizedBox(width: 4),
-                          Text(timeLeftStr, style: TextStyle(color: dropRed.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold)),
+                          Expanded(
+                            child: Text(productName, 
+                              maxLines: 1, 
+                              overflow: TextOverflow.ellipsis, 
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                          if (isHot) ...[
+                            const SizedBox(width: 5),
+                            const Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 16),
+                          ],
                         ],
                       ),
+                      if (timeLeftStr.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Row(
+                            children: [
+                              Icon(Icons.timer_outlined, size: 12, color: isHot ? Colors.orange : dropRed.withOpacity(0.7)),
+                              const SizedBox(width: 4),
+                              Text(timeLeftStr, style: TextStyle(color: isHot ? Colors.orange : dropRed.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (newPrice.isNotEmpty) ...[
+                      Text("$newPrice ${"jod_currency".tr()}", 
+                        style: TextStyle(color: isHot ? Colors.orange[900] : dropRed, fontWeight: FontWeight.w900, fontSize: 18)),
+                      if (oldPrice.isNotEmpty)
+                        Text("$oldPrice ${"jod_currency".tr()}", 
+                          style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 12)),
+                    ] else
+                      Text("$discount% ${"off_text".tr()}", 
+                        style: TextStyle(color: isHot ? Colors.orange : dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
+                    
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isPremium)
+                          IconButton(
+                            icon: const Icon(Icons.share, color: Colors.blue, size: 18),
+                            onPressed: () {
+                              Share.share("Check out this deal: $productName at $storeName for only $newPrice JOD! Download Drop App now.");
+                            },
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                          ),
+                        StreamBuilder<DocumentSnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user?.uid)
+                              .collection('favorites')
+                              .doc(doc.id)
+                              .snapshots(),
+                          builder: (context, favSnapshot) {
+                            bool isFav = favSnapshot.hasData && favSnapshot.data!.exists;
+                            return IconButton(
+                              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: dropRed, size: 18),
+                              onPressed: () => _toggleFavorite(doc.id, data, isFav),
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(5),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (newPrice.isNotEmpty)
-                  Text("$newPrice ${"jod_currency".tr()}", style: const TextStyle(color: dropRed, fontWeight: FontWeight.w900, fontSize: 18))
-                else
-                  Text("$discount% ${"off_text".tr()}", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
-                
-                if (oldPrice.isNotEmpty)
-                  Text("$oldPrice ${"jod_currency".tr()}", style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 12)),
-                
-                StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user?.uid)
-                      .collection('favorites')
-                      .doc(doc.id)
-                      .snapshots(),
-                  builder: (context, favSnapshot) {
-                    bool isFav = favSnapshot.hasData && favSnapshot.data!.exists;
-                    return IconButton(
-                      icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: dropRed, size: 20),
-                      onPressed: () => _toggleFavorite(doc.id, data, isFav),
-                      constraints: const BoxConstraints(),
-                      padding: EdgeInsets.zero,
-                    );
-                  },
+                  ],
                 ),
               ],
             ),
@@ -367,113 +442,303 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     );
   }
 
-  void _showDealDetails(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    
-    // حساب المسافة
-    double distanceKm = 0;
-    if (data['lat'] != null && data['lng'] != null) {
-      distanceKm = const Distance().as(
-        LengthUnit.Kilometer,
-        _userLocation,
-        LatLng(data['lat'], data['lng']),
-      );
+  Widget _buildLargeFollowButton(String storeId, String storeName) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox();
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      builder: (context, userSnapshot) {
+        bool isPremium = false;
+        if (userSnapshot.hasData && userSnapshot.data!.exists) {
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+          isPremium = userData?['isPremium'] ?? false;
+        }
+
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('following_stores')
+              .doc(storeId)
+              .snapshots(),
+          builder: (context, snapshot) {
+            bool isFollowing = snapshot.hasData && snapshot.data!.exists;
+            return SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  if (!isPremium) {
+                    _showPremiumRequiredDialog();
+                  } else {
+                    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('following_stores').doc(storeId);
+                    if (isFollowing) {
+                      ref.delete();
+                    } else {
+                      ref.set({'storeName': storeName, 'followedAt': FieldValue.serverTimestamp()});
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isFollowing ? Colors.grey[200] : dropRed.withOpacity(0.1),
+                  foregroundColor: isFollowing ? Colors.black : dropRed,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                icon: Icon(isFollowing ? Icons.check_circle : Icons.add_circle_outline, size: 20),
+                label: Text(
+                  isFollowing ? "following_label".tr() : "follow_label".tr(),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            );
+          },
+        );
+      }
+    );
+  }
+
+  void _showPremiumRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text("premium_feature".tr()),
+        content: Text("follow_store_premium_desc".tr()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));
+            },
+            child: Text("upgrade_now".tr(), style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(String? category, String productName) {
+    if (category == 'cat_food' || productName.toLowerCase().contains('burger')) return Icons.restaurant_rounded;
+    if (category == 'cat_cafes' || productName.toLowerCase().contains('moca')) return Icons.local_cafe_rounded;
+    if (category == 'cat_fashion') return Icons.shopping_bag_rounded;
+    if (category == 'cat_tech') return Icons.devices_rounded;
+    return Icons.local_offer_rounded;
+  }
+
+  Future<void> _openMaps(double lat, double lng) async {
+    final Uri geoUrl = Uri.parse("geo:$lat,$lng?q=$lat,$lng");
+    final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
+
+    try {
+      if (await canLaunchUrl(geoUrl)) {
+        await launchUrl(geoUrl);
+      } else if (await canLaunchUrl(googleMapsUrl)) {
+        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("error_occurred".tr() + ": $e"), backgroundColor: Colors.red),
+        );
+      }
     }
+  }
+
+  void _showDealDetails(DocumentSnapshot doc) {
+    final Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    final double lat = (data['lat'] as num?)?.toDouble() ?? 31.9539;
+    final double lng = (data['lng'] as num?)?.toDouble() ?? 35.9106;
+    final wrapper = context.findAncestorStateOfType<MainWrapperState>();
+
+    double distanceKm = const Distance().as(
+      LengthUnit.Kilometer,
+      _userLocation,
+      LatLng(lat, lng),
+    );
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      builder: (sheetContext) => Container(
+        height: MediaQuery.of(sheetContext).size.height * 0.75,
+        decoration: BoxDecoration(
+          color: Theme.of(sheetContext).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         ),
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
-            const SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(data['storeName'] ?? "Store", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                      Text(data['product'] ?? "Product", style: const TextStyle(fontSize: 18, color: Colors.grey)),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                  child: Text(
-                    distanceKm > 0 ? "near_you".tr(args: [distanceKm.toStringAsFixed(1)]) : "store_location_hint".tr(),
-                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-            const Divider(),
-            const SizedBox(height: 20),
-            Text("current_deal".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                if (data['newPrice'] != null)
-                  Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: dropRed)),
-                const SizedBox(width: 15),
-                if (data['oldPrice'] != null)
-                  Text("${data['oldPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 20, color: Colors.grey, decoration: TextDecoration.lineThrough)),
-              ],
-            ),
-            const SizedBox(height: 30),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
-              child: Row(
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
+              const SizedBox(height: 25),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.location_on_rounded, color: dropRed),
-                  const SizedBox(width: 15),
                   Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(data['storeName'] ?? "Store", 
+                          maxLines: 1, 
+                          overflow: TextOverflow.ellipsis, 
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                        Text(data['product'] ?? "Product", 
+                          maxLines: 1, 
+                          overflow: TextOverflow.ellipsis, 
+                          style: const TextStyle(fontSize: 17, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
                     child: Text(
-                      data['location'] ?? "location_hint".tr(),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      "near_you".tr(args: [distanceKm.toStringAsFixed(1)]),
+                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
                 ],
               ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: dropRed,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 0,
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  final wrapper = context.findAncestorStateOfType<MainWrapperState>();
-                  if (wrapper != null) {
-                    wrapper.setIndex(1); // فتح الخريطة مباشرة
-                  }
-                },
-                child: Text("show_on_map".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 25),
+              const Divider(),
+              const SizedBox(height: 20),
+              Text("current_deal".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  if (data['newPrice'] != null)
+                    Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: dropRed)),
+                  const SizedBox(width: 12),
+                  if (data['oldPrice'] != null)
+                    Text("${data['oldPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 18, color: Colors.grey, decoration: TextDecoration.lineThrough)),
+                ],
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 25),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.grey.shade100)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: dropRed, size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        data['location'] ?? "location_hint".tr(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              _buildLargeFollowButton(data['storeId'] ?? doc.id, data['storeName'] ?? "Store"),
+              const SizedBox(height: 15),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    _markAsBought(data);
+                    Navigator.pop(sheetContext);
+                  },
+                  icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                  label: Text("mark_as_bought".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 55,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: dropRed, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        ),
+                        onPressed: () => _openMaps(lat, lng),
+                        icon: const Icon(Icons.directions_rounded, color: dropRed, size: 20),
+                        label: Text("go_action".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: SizedBox(
+                      height: 55,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: dropRed,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(sheetContext); 
+                          if (wrapper != null) {
+                            wrapper.setIndex(1, location: LatLng(lat, lng)); 
+                          }
+                        },
+                        icon: const Icon(Icons.map_rounded, color: Colors.white, size: 20),
+                        label: Text("show_on_map".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _markAsBought(Map<String, dynamic> data) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    double oldPrice = double.tryParse(data['oldPrice']?.toString() ?? "0") ?? 0;
+    double newPrice = double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
+    double savedAmount = oldPrice - newPrice;
+    if (savedAmount <= 0) return;
+
+    final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot userDoc = await transaction.get(userRef);
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>?;
+        double currentTotal = (userData?['totalSaved'] ?? 0).toDouble();
+        transaction.update(userRef, {'totalSaved': currentTotal + savedAmount});
+      } else {
+        transaction.set(userRef, {'totalSaved': savedAmount}, SetOptions(merge: true));
+      }
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("saved_amount_msg".tr(args: [savedAmount.toStringAsFixed(3)])),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   Future<void> _toggleFavorite(String dealId, Map<String, dynamic> dealData, bool currentlyFav) async {
@@ -600,13 +865,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.grey[50], 
+          color: Theme.of(context).cardColor, 
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
-            const BoxShadow(
-              color: Colors.white,
+            BoxShadow(
+              color: Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black12,
               blurRadius: 15,
-              offset: Offset(-8, -8),
+              offset: const Offset(-8, -8),
             ),
             BoxShadow(
               color: Colors.black.withOpacity(0.12), 
@@ -620,7 +885,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -638,7 +903,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 13), 
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13), 
             ),
           ],
         ),
@@ -678,12 +943,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             shadowColor: isSelected ? dropRed : Colors.black26,
             child: CircleAvatar(
               radius: 28,
-              backgroundColor: isSelected ? dropRed : Colors.white,
+              backgroundColor: isSelected ? dropRed : Theme.of(context).cardColor,
               child: Icon(icon, color: isSelected ? Colors.white : dropRed, size: 28),
             ),
           ),
           const SizedBox(height: 10),
-          Text(categoryKey.tr(), style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? dropRed : Colors.black)),
+          Text(categoryKey.tr(), style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? dropRed : null)),
         ],
       ),
     );
@@ -697,23 +962,34 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   }
 
   Widget _buildSavingsCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(color: lightGreen, borderRadius: BorderRadius.circular(25)),
-      child: Row(
-        children: [
-          const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.account_balance_wallet, color: Colors.white)),
-          const SizedBox(width: 15),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final user = FirebaseAuth.instance.currentUser;
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
+      builder: (context, snapshot) {
+        double totalSaved = 0;
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          totalSaved = (data?['totalSaved'] ?? 0).toDouble();
+        }
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(color: lightGreen.withOpacity(0.3), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.green.withOpacity(0.1))),
+          child: Row(
             children: [
-              Text("total_saved_title".tr(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              Text("0.000 ${"jod_currency".tr()}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.account_balance_wallet, color: Colors.white)),
+              const SizedBox(width: 15),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("total_saved_title".tr(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                  Text("${totalSaved.toStringAsFixed(3)} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                ],
+              )
             ],
-          )
-        ],
-      ),
+          ),
+        );
+      }
     );
   }
 }

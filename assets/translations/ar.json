@@ -260,5 +260,19 @@
   "location_permission_denied": "تم رفض إذن الوصول للموقع. نحتاج هذا الإذن لتحديد موقع متجرك.",
   "location_permission_permanently_denied": "إذن الوصول للموقع مرفوض نهائياً. يرجى تفعيله من إعدادات التطبيق.",
   "near_you_label": "يبعد عنك",
-  "go_action": "اذهب"
+  "go_action": "اذهب",
+  "old_price_label": "السعر القديم",
+  "new_price_label": "السعر الجديد",
+  "discount_percent_label": "النسبة (%)",
+  "finding_deals_for": "جاري البحث عن عروض لـ {}...",
+  "no_deals_found_for_item": "لم يتم العثور على عروض نشطة لهذا المنتج حالياً.",
+  "visual_search_tooltip": "بحث بالصور (بريميوم)",
+  "premium_feature": "ميزة بريميوم",
+  "visual_search_desc": "صور أي منتج وخلي Drop AI يلاقيلك أحسن سعر! هاي الميزة حصرية لمشتركي البريميوم.",
+  "upgrade_now": "اشترك الآن",
+  "all_filter": "الكل",
+  "set_default_location": "تحديد الموقع الافتراضي",
+  "default_location_desc": "هاد رح يكون موقعك الافتراضي في حال عدم تفعيل الـ GPS عشان يوصلك إشعارات صح.",
+  "default_location_saved": "تم حفظ الموقع الافتراضي بنجاح!",
+  "picking_location": "جاري تحديد الموقع..."
 }

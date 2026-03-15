@@ -15,7 +15,7 @@ class StoreSignUpScreen extends StatefulWidget {
 class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  bool _isLocating = false;
+  bool _isUpdatingLocation = false;
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -44,44 +44,28 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
   static const Color dropRed = Color(0xFFFF0000);
   static const Color scaffoldBg = Color(0xFFF9F6F2);
 
-  Future<void> _getCurrentLocation() async {
-    setState(() => _isLocating = true);
+  Future<void> _updateLocation() async {
+    setState(() => _isUpdatingLocation = true);
     try {
-      bool serviceEnabled;
-      LocationPermission permission;
-
-      // 1. التحقق من تفعيل خدمة الـ GPS
-      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        setState(() => _isLocating = false);
+        setState(() => _isUpdatingLocation = false);
         _showError("location_service_disabled".tr());
-        // محاولة طلب تفعيل الخدمة (تفتح إعدادات النظام)
         await Geolocator.openLocationSettings();
         return;
       }
 
-      // 2. التحقق من الأذونات
-      permission = await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          setState(() => _isLocating = false);
+          setState(() => _isUpdatingLocation = false);
           _showError("location_permission_denied".tr());
           return;
         }
       }
 
-      if (permission == LocationPermission.deniedForever) {
-        setState(() => _isLocating = false);
-        _showError("location_permission_permanently_denied".tr());
-        await Geolocator.openAppSettings();
-        return;
-      }
-
-      // 3. جلب الموقع الحالي
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high
-      );
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       
       setState(() {
         latController.text = position.latitude.toString();
@@ -94,9 +78,9 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
         );
       }
     } catch (e) {
-      _showError("location_error".tr(args: [e.toString()]));
+      _showError(e.toString());
     } finally {
-      if (mounted) setState(() => _isLocating = false);
+      if (mounted) setState(() => _isUpdatingLocation = false);
     }
   }
 
@@ -303,14 +287,20 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
                   Expanded(child: _buildStoreInputField(controller: lngController, hint: "Longitude", icon: Icons.location_on, isNumber: true)),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 15),
               SizedBox(
                 width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: _isLocating ? null : _getCurrentLocation,
-                  icon: _isLocating ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: dropRed)) : const Icon(Icons.my_location_rounded, color: dropRed),
-                  label: Text(_isLocating ? "locating".tr() : "get_my_location".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
-                  style: TextButton.styleFrom(backgroundColor: dropRed.withOpacity(0.05), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                height: 50,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: dropRed),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: !_isUpdatingLocation ? _updateLocation : null,
+                  icon: _isUpdatingLocation 
+                      ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: dropRed)) 
+                      : const Icon(Icons.my_location_rounded, color: dropRed),
+                  label: Text("get_my_location".tr(), style: const TextStyle(color: dropRed)),
                 ),
               ),
               

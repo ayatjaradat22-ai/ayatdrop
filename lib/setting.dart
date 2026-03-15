@@ -3,34 +3,56 @@ import 'package:easy_localization/easy_localization.dart';
 import 'edit_profile.dart';
 import 'change_password.dart';
 import 'language.dart';
-import 'drop.dart';
 import 'aboutapp.dart';
 import 'premium.dart';
 import 'saved_stores.dart';
 import 'FAQ.dart';
+import 'drop.dart';
+import 'package:provider/provider.dart';
+import 'main.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+class SettingScreen extends StatefulWidget {
+  const SettingScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<SettingScreen> createState() => _SettingScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingScreenState extends State<SettingScreen> {
   static const Color dropRed = Color(0xFFFF1111);
+  bool _isPremium = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPremiumStatus();
+  }
+
+  Future<void> _checkPremiumStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    if (doc.exists && mounted) {
+      setState(() => _isPremium = doc.data()?['isPremium'] ?? false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).iconTheme.color ?? Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text("settings".tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+        title: Text("settings".tr(), style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color ?? Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
         centerTitle: false,
       ),
       body: SingleChildScrollView(
@@ -43,9 +65,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildPremiumCard(context),
             const SizedBox(height: 30),
             _buildSectionHeader("account_settings_section".tr()),
-            _buildModernTile(Icons.person_outline_rounded, "personal_account".tr(), () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
-            }),
             _buildModernTile(Icons.edit_outlined, "edit_profile".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
             }),
@@ -57,6 +76,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }),
             const SizedBox(height: 25),
             _buildSectionHeader("preferences_section".tr()),
+            
+            _buildModernTile(
+              Icons.dark_mode_rounded, 
+              "dark_mode".tr(), 
+              () {
+                if (!_isPremium) {
+                  _showPremiumRequiredDialog();
+                }
+              },
+              trailing: _isPremium 
+                ? Switch(
+                    value: themeProvider.themeMode == ThemeMode.dark,
+                    activeColor: dropRed,
+                    onChanged: (val) => themeProvider.toggleTheme(val),
+                  )
+                : const Icon(Icons.stars_rounded, color: Colors.amber, size: 18),
+            ),
+
             _buildModernTile(Icons.language_rounded, "app_language".tr(), () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen()));
             }),
@@ -89,11 +126,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildModernTile(IconData icon, String title, VoidCallback onTap) {
+  Widget _buildModernTile(IconData icon, String title, VoidCallback onTap, {Widget? trailing}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Theme.of(context).brightness == Brightness.light ? Colors.grey[50] : Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(18),
       ),
       child: ListTile(
@@ -101,11 +138,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
         leading: Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black26, 
+            borderRadius: BorderRadius.circular(12)
+          ),
           child: Icon(icon, color: dropRed, size: 22),
         ),
-        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.black26),
+        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        trailing: trailing ?? const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.black26),
       ),
     );
   }
@@ -168,9 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.grey.shade200)),
         ),
-        onPressed: () {
-          _showLogoutDialog(context);
-        },
+        onPressed: () => _logout(),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -183,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _logout() async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -192,14 +230,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
           TextButton(
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (!mounted) return;
+              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
                 (route) => false,
               );
             },
-            child: Text("logout_title".tr(), style: const TextStyle(color: dropRed)),
+            child: Text("logout_button".tr(), style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPremiumRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("premium_feature".tr()),
+        content: Text("dark_mode_premium_desc".tr()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: dropRed),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));
+            },
+            child: Text("upgrade_now".tr(), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

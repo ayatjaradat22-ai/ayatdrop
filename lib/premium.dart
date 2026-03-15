@@ -15,30 +15,33 @@ class _PremiumScreenState extends State<PremiumScreen> {
   static const Color dropRed = Color(0xFFFF1111);
   static const Color deepRed = Color(0xFF8B0000);
 
-  Future<void> _activatePremium() async {
+  Future<void> _togglePremium(bool currentStatus) async {
     try {
       await FirebaseFirestore.instance.collection('users').doc(user?.uid).update({
-        'isPremium': true,
+        'isPremium': !currentStatus,
         'subscriptionDate': DateTime.now(),
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("premium_member".tr()), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text(!currentStatus ? "premium_member".tr() : "Premium deactivated"), 
+          backgroundColor: !currentStatus ? Colors.green : Colors.orange
+        ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Subscription failed")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Action failed")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -55,7 +58,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                // أيقونة VIP بتصميم فخم (تأثير متوهج)
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -75,7 +77,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     Container(
                       padding: const EdgeInsets.all(25),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
@@ -94,7 +96,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   isPremium ? "premium_member".tr() : "premium_title".tr(),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.black, 
                     fontSize: 30, 
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5,
@@ -117,9 +118,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
                 const SizedBox(height: 50),
 
+                // زر مؤقت للتبديل بين بريميوم وعادي
+                _buildDebugToggleButton(isPremium),
+
+                const SizedBox(height: 20),
+
                 if (!isPremium)
                   GestureDetector(
-                    onTap: _activatePremium,
+                    onTap: () => _togglePremium(false),
                     child: Container(
                       width: double.infinity,
                       height: 65,
@@ -178,14 +184,42 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
+  Widget _buildDebugToggleButton(bool isPremium) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.amber.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          const Text("🛠️ DEV TOOL (Temporary)", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber)),
+          const SizedBox(height: 5),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isPremium ? Colors.grey : Colors.amber,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => _togglePremium(isPremium),
+            child: Text(isPremium ? "DEACTIVATE PREMIUM" : "ACTIVATE PREMIUM"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFeatureItem(IconData icon, String text) {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade100, width: 1),
+        border: Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -208,7 +242,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
           Expanded(
             child: Text(text, 
               style: const TextStyle(
-                color: Colors.black87, 
                 fontSize: 16, 
                 fontWeight: FontWeight.w700,
               )),

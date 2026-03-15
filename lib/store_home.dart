@@ -121,20 +121,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
         }
       }
 
-      // جلب الموقع الحالي بدقة عالية
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // 1. تحديث موقع المتجر في جدول المستخدمين
       await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
         'lat': position.latitude,
         'lng': position.longitude,
         'lastLocationUpdate': FieldValue.serverTimestamp(),
       });
 
-      // 2. تحديث موقع المتجر في جميع العروض المنشورة سابقاً لضمان انتقالها على الخريطة
       final dealsQuery = await FirebaseFirestore.instance
           .collection('deals')
           .where('storeId', isEqualTo: user.uid)
@@ -271,6 +268,32 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     });
   }
 
+  Future<void> _notifyFollowers(String storeId, String storeName, String product, String discount) async {
+    // جلب كل المستخدمين الذين يتابعون هذا المتجر
+    final followersSnapshot = await FirebaseFirestore.instance
+        .collectionGroup('following_stores')
+        .where(FieldPath.documentId, isEqualTo: storeId)
+        .get();
+
+    for (var doc in followersSnapshot.docs) {
+      // الحصول على UID المستخدم من المسار (users/{uid}/following_stores/{storeId})
+      final userPath = doc.reference.path.split('/');
+      if (userPath.length >= 2) {
+        final userId = userPath[1];
+        
+        // إضافة تنبيه للمستخدم في قاعدة البيانات (للعرض في شاشة التنبيهات)
+        await FirebaseFirestore.instance.collection('users').doc(userId).collection('notifications').add({
+          'title': "خبر عاجل من متجر تتابعه! 🔥",
+          'body': "نشر $storeName عرضاً جديداً على $product بخصم $discount%!",
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+          'type': 'follow_update',
+          'storeId': storeId,
+        });
+      }
+    }
+  }
+
   Future<void> _publishOrUpdateDiscount() async {
     final user = FirebaseAuth.instance.currentUser;
     if (_productController.text.isEmpty || _oldPriceController.text.isEmpty || _selectedDealCategory == null || user == null) {
@@ -293,15 +316,18 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       'lat': storeLat ?? 31.9539, 
       'lng': storeLng ?? 35.9106,
       'expiryTime': Timestamp.fromDate(_selectedExpiry),
-      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(), // تحديث الوقت دائماً ليتم اعتباره عرضاً جديداً في الإشعارات
     };
 
     if (_editingDealId != null) {
       await FirebaseFirestore.instance.collection('deals').doc(_editingDealId).update(dealData);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr())));
     } else {
-      dealData['createdAt'] = FieldValue.serverTimestamp();
       await FirebaseFirestore.instance.collection('deals').add(dealData);
+      
+      // تنبيه المتابعين عبر شاشة الإشعارات
+      _notifyFollowers(user.uid, storeName ?? "Store", _productController.text, _percentController.text);
+      
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr())));
     }
 
@@ -408,7 +434,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           _buildStoreInput(_productController, "product_name_hint".tr(), (v) => setState(() => productName = v), limit: 30),
           const SizedBox(height: 18),
           
-          _buildStoreInput(_oldPriceController, "السعر القديم (JOD)", (v) => _updateCalculations(), isNumber: true, limit: 6),
+          _buildStoreInput(_oldPriceController, "old_price_label".tr(), (v) => _updateCalculations(), isNumber: true, limit: 6),
           const SizedBox(height: 18),
 
           Row(
@@ -416,7 +442,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
               Expanded(
                 child: _buildStoreInput(
                   _newPriceController, 
-                  "السعر الجديد", 
+                  "new_price_label".tr(), 
                   (v) { 
                     if (v.isNotEmpty) {
                       _isPriceMode = true; 
@@ -433,7 +459,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
               Expanded(
                 child: _buildStoreInput(
                   _percentController, 
-                  "النسبة (%)", 
+                  "discount_percent_label".tr(), 
                   (v) { 
                     if (v.isNotEmpty) {
                       _isPriceMode = false; 

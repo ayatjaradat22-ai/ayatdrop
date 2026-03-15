@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'home.dart';
 
 class SmartShoppingListScreen extends StatefulWidget {
   const SmartShoppingListScreen({super.key});
@@ -44,6 +45,70 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
         .collection('shopping_list')
         .doc(id)
         .delete();
+  }
+
+  void _findDealsForItem(String itemName) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 15),
+            Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                "finding_deals_for".tr(args: [itemName]),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('deals').snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: dropRed));
+                  
+                  final results = snapshot.data!.docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final product = (data['product'] ?? "").toString().toLowerCase();
+                    return product.contains(itemName.toLowerCase());
+                  }).toList();
+
+                  if (results.isEmpty) {
+                    return Center(child: Text("no_deals_found_for_item".tr()));
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(15),
+                    itemCount: results.length,
+                    itemBuilder: (context, index) {
+                      final data = results[index].data() as Map<String, dynamic>;
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        child: ListTile(
+                          title: Text(data['product'] ?? ""),
+                          subtitle: Text(data['storeName'] ?? ""),
+                          trailing: Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -149,9 +214,7 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextButton.icon(
-              onPressed: () {
-                // Future logic to search deals for this specific item
-              },
+              onPressed: () => _findDealsForItem(name),
               icon: const Icon(Icons.search, size: 16, color: dropRed),
               label: Text("find_deals_for_item".tr(), style: const TextStyle(color: dropRed, fontSize: 12)),
             ),

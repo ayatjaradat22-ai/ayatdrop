@@ -10,17 +10,17 @@ class TenJdChallengeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).iconTheme.color ?? Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "ten_jd_challenge".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -69,17 +69,31 @@ class TenJdChallengeScreen extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         
-        final affordableDeals = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final product = (data['product'] ?? "").toString().toLowerCase();
-          final discount = (data['discount'] ?? "").toString().toLowerCase();
-          
-          return product.contains('10') || product.contains('5') || 
-                 discount.contains('10') || discount.contains('5') ||
-                 data['category'] == 'cat_food' || data['category'] == 'cat_cafes';
-        }).toList();
+        final allDeals = snapshot.data!.docs;
+        
+        // تصفية العروض التي سعرها أقل من 10 دنانير بشكل فردي أو يمكن دمجها
+        final List<List<DocumentSnapshot>> bundles = [];
+        List<DocumentSnapshot> currentBundle = [];
+        double currentTotal = 0;
 
-        if (affordableDeals.isEmpty) {
+        for (var doc in allDeals) {
+          final data = doc.data() as Map<String, dynamic>;
+          final price = double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
+
+          if (price > 0 && price <= 10) {
+            if (currentTotal + price <= 10) {
+              currentBundle.add(doc);
+              currentTotal += price;
+            } else {
+              if (currentBundle.isNotEmpty) bundles.add(List.from(currentBundle));
+              currentBundle = [doc];
+              currentTotal = price;
+            }
+          }
+        }
+        if (currentBundle.isNotEmpty) bundles.add(currentBundle);
+
+        if (bundles.isEmpty) {
           return Center(child: Text("coming_soon".tr()));
         }
 
@@ -87,33 +101,29 @@ class TenJdChallengeScreen extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: (affordableDeals.length / 2).ceil(),
+          itemCount: bundles.length,
           itemBuilder: (context, index) {
-            int firstIdx = index * 2;
-            int secondIdx = firstIdx + 1;
-            
-            return _buildBundleCard(
-              context,
-              affordableDeals[firstIdx],
-              secondIdx < affordableDeals.length ? affordableDeals[secondIdx] : null,
-            );
+            return _buildBundleCard(context, bundles[index]);
           },
         );
       },
     );
   }
 
-  Widget _buildBundleCard(BuildContext context, DocumentSnapshot item1, DocumentSnapshot? item2) {
-    final data1 = item1.data() as Map<String, dynamic>;
-    final data2 = item2?.data() as Map<String, dynamic>?;
+  Widget _buildBundleCard(BuildContext context, List<DocumentSnapshot> items) {
+    double total = 0;
+    for (var item in items) {
+      final data = item.data() as Map<String, dynamic>;
+      total += double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
       ),
       child: Column(
@@ -125,35 +135,37 @@ class TenJdChallengeScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                child: Text("items_bundle".tr(args: [item2 == null ? "1" : "2"]), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                child: Text("items_bundle".tr(args: [items.length.toString()]), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
-              const Text("~ 10 JOD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+              Text("< 10 JOD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700)),
             ],
           ),
           const SizedBox(height: 15),
-          _buildItemRow(data1['storeName'] ?? "Store", data1['product'] ?? "Item"),
-          if (data2 != null) ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Divider(height: 1),
-            ),
-            _buildItemRow(data2['storeName'] ?? "Store", data2['product'] ?? "Item"),
-          ],
-          const SizedBox(height: 15),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              onPressed: () {},
-              child: Text("get_them_now".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
+          ...items.map((item) {
+            final data = item.data() as Map<String, dynamic>;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _buildItemRow(data['storeName'] ?? "Store", data['product'] ?? "Item", data['newPrice']?.toString() ?? "0"),
+            );
+          }).toList(),
+          const Divider(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("total_price".tr(args: [total.toStringAsFixed(2)]), style: const TextStyle(fontWeight: FontWeight.bold)),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: () {},
+                child: Text("get_them_now".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildItemRow(String store, String product) {
+  Widget _buildItemRow(String store, String product, String price) {
     return Row(
       children: [
         const Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
@@ -161,7 +173,7 @@ class TenJdChallengeScreen extends StatelessWidget {
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: const TextStyle(color: Colors.black87, fontSize: 14),
+              style: const TextStyle(fontSize: 14),
               children: [
                 TextSpan(text: "$product ", style: const TextStyle(fontWeight: FontWeight.bold)),
                 TextSpan(text: "from_store".tr(args: [store]), style: const TextStyle(color: Colors.grey)),
@@ -169,6 +181,7 @@ class TenJdChallengeScreen extends StatelessWidget {
             ),
           ),
         ),
+        Text("$price JOD", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
       ],
     );
   }
