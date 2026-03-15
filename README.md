@@ -7,18 +7,17 @@
 ## 🚀 Key Features
 
 ### 👤 For Savers (Users)
+- **Real-time Follower Alerts:** Get instant notifications the second a store you follow publishes a new deal. 🔥
+- **Auto-Clean Feed:** The home screen and map automatically hide expired deals, keeping your experience fresh and relevant.
 - **Drop AI Assistant:** A smart, friendly AI guide (powered by Gemini 1.5 Flash) that helps you find the best deals using natural Jordanian dialect.
 - **Proximity-Based Discovery:** Explore deals on an interactive map or filter them by distance (from 0 to 20km).
 - **Smart Notifications:** Customize alerts based on your interests (Food, Fashion, Cafes, etc.) and your current location.
-- **Real-time Search:** A dual-search system—one for AI suggestions and another for direct store/product lookups.
-- **Favorites Gallery:** Save your favorite deals with a single tap and access them anytime, even offline-ready.
-- **Countdown Timers:** Smart expiry labels that show days remaining, or switch to hours for deals ending within 24h.
 
 ### 🏪 For Merchants (Store Owners)
+- **Instant Reach:** Every deal you publish or update instantly triggers notifications to all your followers.
+- **Deal Lifecycle Management:** Publish deals with custom expiry times. Expired deals are hidden from users but kept in your dashboard for easy re-activation.
 - **Merchant Dashboard:** A professional suite to publish, edit, and track active discounts.
-- **Custom Expiry (Alarm Style):** Complete freedom to set deal endings using an intuitive Date & Time picker.
-- **Category Targeting:** List stores under specific categories to reach the most interested customers.
-- **Subscription Management:** Built-in system to track and renew store membership status.
+- **Subscription Management:** Built-in system to track and renew store membership status with localized payment support.
 
 ---
 
@@ -39,37 +38,15 @@
 
 ```text
 lib/
-├── ai_guide_screen.dart    # AI Chat interface & logic
-├── home.dart               # Smart search & deals feed
-├── map.dart                # Interactive location discovery
+├── main.dart               # App entry, Firebase init & Global Notification Listener
+├── home.dart               # Smart search & deals feed (with Auto-Expiry filter)
+├── map.dart                # Interactive location discovery & Store Markers
+├── store_home.dart         # Merchant control panel & Deal publishing logic
 ├── notifications_screen.dart# Range & Category filter settings
-├── store_home.dart         # Merchant control panel
+├── ai_guide_screen.dart    # AI Chat interface & logic
 ├── saved_stores.dart       # User favorites list
-├── database_service.dart   # Centralized Firestore logic
-└── main.dart               # App entry & Firebase init
+└── database_service.dart   # Centralized Firestore logic
 ```
-
----
-
-## ⚙️ Installation & Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/ayatdrop.git
-   ```
-2. **Install dependencies:**
-   ```bash
-   flutter pub get
-   ```
-3. **Firebase Configuration:**
-   - Add your `google-services.json` (Android) and `GoogleService-Info.plist` (iOS).
-   - Enable Firestore and Authentication in the Firebase Console.
-4. **AI API Key:**
-   - Replace the API key in `lib/ai_guide_screen.dart` with your own from [Google AI Studio](https://aistudio.google.com/).
-5. **Run the app:**
-   ```bash
-   flutter run
-   ```
 
 ---
 
