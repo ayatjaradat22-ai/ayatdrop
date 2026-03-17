@@ -9,19 +9,18 @@ class AboutAppScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "our_story".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
@@ -62,8 +61,8 @@ class AboutAppScreen extends StatelessWidget {
 
                 const SizedBox(height: 40),
 
-                _buildModernInfoSection("vision_mission".tr(), aboutText, Icons.auto_awesome_rounded),
-                _buildModernInfoSection("why_drop".tr(), problemsSolved, Icons.verified_rounded),
+                _buildModernInfoSection(context, "vision_mission".tr(), aboutText, Icons.auto_awesome_rounded),
+                _buildModernInfoSection(context, "why_drop".tr(), problemsSolved, Icons.verified_rounded),
 
                 const SizedBox(height: 40),
 
@@ -105,7 +104,8 @@ class AboutAppScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildModernInfoSection(String title, String content, IconData icon) {
+  Widget _buildModernInfoSection(BuildContext context, String title, String content, IconData icon) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 25),
       width: double.infinity,
@@ -126,16 +126,16 @@ class AboutAppScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.grey.shade100),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
             ),
             child: Text(
               content,
               style: TextStyle(
                 fontSize: 14,
                 height: 1.7,
-                color: Colors.grey[700],
+                color: isDark ? Colors.grey[400] : Colors.grey[700],
                 fontWeight: FontWeight.w500,
               ),
             ),

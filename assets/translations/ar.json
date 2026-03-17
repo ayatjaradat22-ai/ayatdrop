@@ -274,5 +274,6 @@
   "set_default_location": "تحديد الموقع الافتراضي",
   "default_location_desc": "هاد رح يكون موقعك الافتراضي في حال عدم تفعيل الـ GPS عشان يوصلك إشعارات صح.",
   "default_location_saved": "تم حفظ الموقع الافتراضي بنجاح!",
-  "picking_location": "جاري تحديد الموقع..."
+  "picking_location": "جاري تحديد الموقع...",
+  "price_error_higher": "السعر الجديد لا يمكن أن يكون أعلى من السعر القديم!"
 }

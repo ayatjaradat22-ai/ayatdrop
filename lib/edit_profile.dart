@@ -32,14 +32,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _updateProfile() async {
-    if (_nameController.text.isEmpty) return;
+    if (_nameController.text.isEmpty || user == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user?.uid).update({
-        'name': _nameController.text.trim(),
+      final newName = _nameController.text.trim();
+      
+      // 1. تحديث اسم المستخدم في مجموعة users
+      await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+        'name': newName,
       });
+
+      // 2. تحديث اسم المتجر في جميع العروض (deals) الخاصة بهذا المستخدم
+      final dealsQuery = await FirebaseFirestore.instance
+          .collection('deals')
+          .where('storeId', isEqualTo: user!.uid)
+          .get();
+
+      if (dealsQuery.docs.isNotEmpty) {
+        WriteBatch batch = FirebaseFirestore.instance.batch();
+        for (var doc in dealsQuery.docs) {
+          batch.update(doc.reference, {'storeName': newName});
+        }
+        await batch.commit();
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,19 +74,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "edit_profile_title".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: SafeArea(
@@ -84,11 +100,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   _buildModernLogo(),
                   const SizedBox(height: 40),
                   
-                  _buildInputField("full_name_label".tr(), Icons.person_outline_rounded, _nameController),
+                  _buildInputField(context, "full_name_label".tr(), Icons.person_outline_rounded, _nameController),
                   
                   const SizedBox(height: 20),
                   
-                  _buildReadOnlyField("email_address_label".tr(), Icons.mail_outline_rounded, user?.email ?? ""),
+                  _buildReadOnlyField(context, "email_address_label".tr(), Icons.mail_outline_rounded, user?.email ?? ""),
                   
                   const SizedBox(height: 50),
                   _buildSaveButton(),
@@ -123,17 +139,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildInputField(String label, IconData icon, TextEditingController controller) {
+  Widget _buildInputField(BuildContext context, String label, IconData icon, TextEditingController controller) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade100),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
           ),
           child: TextField(
             controller: controller,
@@ -149,17 +166,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildReadOnlyField(String label, IconData icon, String value) {
+  Widget _buildReadOnlyField(BuildContext context, String label, IconData icon, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black45)),
+        Text(label, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isDark ? Colors.grey[500] : Colors.black45)),
         const SizedBox(height: 10),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 15),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[100],
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(

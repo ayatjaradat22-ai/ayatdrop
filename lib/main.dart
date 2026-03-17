@@ -29,6 +29,15 @@ void main() async {
 
   try {
     await Firebase.initializeApp();
+    
+    // طلب صلاحيات الإشعارات (مهم جداً لأندرويد 13+ و iOS)
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     await flutterLocalNotificationsPlugin
@@ -70,7 +79,6 @@ void main() async {
   );
 }
 
-// دالة سحرية لمتابعة عروض المتاجر التي يتابعها المستخدم
 void _setupUserAndFollowersListener(String uid) async {
   String? token = await FirebaseMessaging.instance.getToken();
   if (token != null) {
@@ -80,41 +88,40 @@ void _setupUserAndFollowersListener(String uid) async {
     }, SetOptions(merge: true));
   }
 
-  // 1. الحصول على قائمة المتاجر التي يتابعها المستخدم
+  List<String> followedStoreIds = [];
+  // نأخذ وقت التشغيل لنراقب العروض التي تنشر "بعد" فتح التطبيق فقط
+  final startTime = Timestamp.now();
+
+  // 1. مراقبة قائمة المتاجر المتابعة
   FirebaseFirestore.instance
       .collection('users')
       .doc(uid)
       .collection('following_stores')
       .snapshots()
       .listen((followingSnapshot) {
-    
-    List<String> followedStoreIds = followingSnapshot.docs.map((doc) => doc.id).toList();
-    
-    if (followedStoreIds.isEmpty) return;
+    followedStoreIds = followingSnapshot.docs.map((doc) => doc.id).toList();
+  });
 
-    // 2. مراقبة جدول العروض (Deals) للعروض الجديدة
-    // تم تغيير 'timestamp' إلى 'createdAt' لتتوافق مع ما يتم تخزينه في المتجر
-    FirebaseFirestore.instance
-        .collection('deals')
-        .where('createdAt', isGreaterThan: Timestamp.now())
-        .snapshots()
-        .listen((dealsSnapshot) {
-      
-      for (var change in dealsSnapshot.docChanges) {
-        if (change.type == DocumentChangeType.added) {
-          var dealData = change.doc.data() as Map<String, dynamic>;
-          String storeId = dealData['storeId'] ?? "";
-          
-          // 3. إذا كان العرض من متجر أتابعه، أظهر إشعاراً فوراً
-          if (followedStoreIds.contains(storeId)) {
-            _showNotification(
-              "عرض جديد من ${dealData['storeName'] ?? 'متجر تتابعه'} 🔥",
-              "خصم ${dealData['discount']}% على ${dealData['product']}"
-            );
-          }
+  // 2. مراقبة العروض الجديدة أو المحدثة
+  FirebaseFirestore.instance
+      .collection('deals')
+      .where('createdAt', isGreaterThan: startTime)
+      .snapshots()
+      .listen((dealsSnapshot) {
+    for (var change in dealsSnapshot.docChanges) {
+      // نتحقق من الإضافة أو التعديل (لأن التعديل الآن يغير createdAt)
+      if (change.type == DocumentChangeType.added || change.type == DocumentChangeType.modified) {
+        var dealData = change.doc.data() as Map<String, dynamic>;
+        String storeId = dealData['storeId'] ?? "";
+        
+        if (followedStoreIds.contains(storeId)) {
+          _showNotification(
+            "عرض جديد من ${dealData['storeName'] ?? 'متجر تتابعه'} 🔥",
+            "خصم ${dealData['discount']}% على ${dealData['product']}"
+          );
         }
       }
-    });
+    }
   });
 }
 

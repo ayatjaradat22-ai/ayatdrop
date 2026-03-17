@@ -9,19 +9,18 @@ class ContactUsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "contact_us".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: SingleChildScrollView(
@@ -48,23 +47,26 @@ class ContactUsScreen extends StatelessWidget {
             Text(
               "contact_support_desc".tr(),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[500], fontSize: 14, height: 1.5),
+              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[500], fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 50),
 
             _buildContactTile(
+              context,
               Icons.email_outlined,
               "email_us_title".tr(),
               "support@drop-app.com",
               () => _launchURL("mailto:support@drop-app.com"),
             ),
             _buildContactTile(
+              context,
               Icons.phone_outlined,
               "call_us_title".tr(),
               "+962 79 000 0000",
               () => _launchURL("tel:+962790000000"),
             ),
             _buildContactTile(
+              context,
               Icons.chat_bubble_outline_rounded,
               "whatsapp_title".tr(),
               "WhatsApp Support",
@@ -76,30 +78,34 @@ class ContactUsScreen extends StatelessWidget {
     );
   }
 
-  void _launchURL(String url) async {
+  Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
   }
 
-  Widget _buildContactTile(IconData icon, String title, String subtitle, VoidCallback onTap) {
+  Widget _buildContactTile(BuildContext context, IconData icon, String title, String subtitle, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
       ),
       child: ListTile(
         onTap: onTap,
         leading: Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.black26 : Colors.white,
+            borderRadius: BorderRadius.circular(12)
+          ),
           child: Icon(icon, color: dropRed, size: 24),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+        subtitle: Text(subtitle, style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[500], fontSize: 13)),
         trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
       ),
     );

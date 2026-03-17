@@ -9,9 +9,7 @@ class FAQScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -26,23 +24,24 @@ class FAQScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildFAQItem("faq_q1".tr(), "faq_a1".tr()),
-          _buildFAQItem("faq_q2".tr(), "faq_a2".tr()),
-          _buildFAQItem("faq_q3".tr(), "faq_a3".tr()),
-          _buildFAQItem("faq_q4".tr(), "faq_a4".tr()),
-          _buildFAQItem("faq_q5".tr(), "faq_a5".tr()),
+          _buildFAQItem(context, "faq_q1".tr(), "faq_a1".tr()),
+          _buildFAQItem(context, "faq_q2".tr(), "faq_a2".tr()),
+          _buildFAQItem(context, "faq_q3".tr(), "faq_a3".tr()),
+          _buildFAQItem(context, "faq_q4".tr(), "faq_a4".tr()),
+          _buildFAQItem(context, "faq_q5".tr(), "faq_a5".tr()),
         ],
       ),
     );
   }
 
-  Widget _buildFAQItem(String question, String answer) {
+  Widget _buildFAQItem(BuildContext context, String question, String answer) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
       ),
       child: ExpansionTile(
         shape: const RoundedRectangleBorder(side: BorderSide.none),
@@ -57,7 +56,11 @@ class FAQScreen extends StatelessWidget {
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
             child: Text(
               answer,
-              style: TextStyle(color: Colors.grey[700], fontSize: 14, height: 1.5),
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[700],
+                fontSize: 14,
+                height: 1.5,
+              ),
             ),
           ),
         ],

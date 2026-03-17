@@ -282,5 +282,6 @@
   "set_default_location": "Set Default Location",
   "default_location_desc": "This will be your default location if GPS is disabled.",
   "default_location_saved": "Default location saved successfully!",
-  "picking_location": "Picking location..."
+  "picking_location": "Picking location...",
+  "price_error_higher": "New price cannot be higher than the old price!"
 }

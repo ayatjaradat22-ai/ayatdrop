@@ -210,7 +210,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     double oldP = double.tryParse(_oldPriceController.text) ?? 0;
     if (_isPriceMode) {
       double newP = double.tryParse(_newPriceController.text) ?? 0;
-      if (oldP > 0 && newP > 0 && oldP > newP) {
+      if (oldP > 0 && newP > 0) {
         double percent = ((oldP - newP) / oldP) * 100;
         setState(() {
           discountPercent = "${percent.toStringAsFixed(0)}% OFF";
@@ -230,9 +230,13 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Future<void> _pickExpiry() async {
+    final DateTime initial = _selectedExpiry.isBefore(DateTime.now()) 
+        ? DateTime.now().add(const Duration(minutes: 5)) 
+        : _selectedExpiry;
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: _selectedExpiry,
+      initialDate: initial,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: dropRed)), child: child!),
@@ -241,7 +245,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     if (pickedDate != null) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.fromDateTime(_selectedExpiry),
+        initialTime: TimeOfDay.fromDateTime(initial),
         builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: dropRed)), child: child!),
       );
 
@@ -261,7 +265,14 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       _newPriceController.text = (data['newPrice'] ?? "").toString();
       _percentController.text = (data['discount'] ?? "").toString();
       _selectedDealCategory = data['category'];
-      _selectedExpiry = (data['expiryTime'] as Timestamp).toDate();
+      
+      DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
+      if (expiry.isBefore(DateTime.now())) {
+        _selectedExpiry = DateTime.now().add(const Duration(hours: 24));
+      } else {
+        _selectedExpiry = expiry;
+      }
+
       productName = _productController.text;
       discountPercent = "${_percentController.text}% OFF";
       _tabController.animateTo(0);
@@ -269,19 +280,16 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Future<void> _notifyFollowers(String storeId, String storeName, String product, String discount) async {
-    // جلب كل المستخدمين الذين يتابعون هذا المتجر
     final followersSnapshot = await FirebaseFirestore.instance
         .collectionGroup('following_stores')
         .where(FieldPath.documentId, isEqualTo: storeId)
         .get();
 
     for (var doc in followersSnapshot.docs) {
-      // الحصول على UID المستخدم من المسار (users/{uid}/following_stores/{storeId})
       final userPath = doc.reference.path.split('/');
       if (userPath.length >= 2) {
         final userId = userPath[1];
         
-        // إضافة تنبيه للمستخدم في قاعدة البيانات (للعرض في شاشة التنبيهات)
         await FirebaseFirestore.instance.collection('users').doc(userId).collection('notifications').add({
           'title': "خبر عاجل من متجر تتابعه! 🔥",
           'body': "نشر $storeName عرضاً جديداً على $product بخصم $discount%!",
@@ -301,6 +309,14 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       return;
     }
 
+    double oldP = double.tryParse(_oldPriceController.text) ?? 0;
+    double newP = double.tryParse(_newPriceController.text) ?? 0;
+    
+    if (newP >= oldP) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("price_error_higher".tr()), backgroundColor: Colors.orange));
+      return;
+    }
+
     if (storeLat == null || storeLng == null) {
       await _loadStoreData();
     }
@@ -316,7 +332,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       'lat': storeLat ?? 31.9539, 
       'lng': storeLng ?? 35.9106,
       'expiryTime': Timestamp.fromDate(_selectedExpiry),
-      'createdAt': FieldValue.serverTimestamp(), // تحديث الوقت دائماً ليتم اعتباره عرضاً جديداً في الإشعارات
+      'createdAt': FieldValue.serverTimestamp(),
     };
 
     if (_editingDealId != null) {
@@ -324,10 +340,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr())));
     } else {
       await FirebaseFirestore.instance.collection('deals').add(dealData);
-      
-      // تنبيه المتابعين عبر شاشة الإشعارات
       _notifyFollowers(user.uid, storeName ?? "Store", _productController.text, _percentController.text);
-      
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr())));
     }
 
@@ -444,15 +457,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
                   _newPriceController, 
                   "new_price_label".tr(), 
                   (v) { 
-                    if (v.isNotEmpty) {
-                      _isPriceMode = true; 
-                      _percentController.clear();
-                    }
+                    setState(() => _isPriceMode = true);
                     _updateCalculations(); 
                   }, 
                   isNumber: true, 
                   limit: 6,
-                  readOnly: !_isPriceMode && _percentController.text.isNotEmpty,
                 ),
               ),
               const SizedBox(width: 15),
@@ -461,15 +470,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
                   _percentController, 
                   "discount_percent_label".tr(), 
                   (v) { 
-                    if (v.isNotEmpty) {
-                      _isPriceMode = false; 
-                      _newPriceController.clear();
-                    }
+                    setState(() => _isPriceMode = false);
                     _updateCalculations(); 
                   }, 
                   isNumber: true, 
                   limit: 2,
-                  readOnly: _isPriceMode && _newPriceController.text.isNotEmpty,
                 ),
               ),
             ],
