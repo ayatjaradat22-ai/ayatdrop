@@ -16,6 +16,8 @@ import 'ten_jd_challenge_screen.dart';
 import 'smart_shopping_list_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'premium.dart';
+import 'app_colors.dart';
+import 'store_profile_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   final int initialIndex;
@@ -27,7 +29,6 @@ class MainWrapper extends StatefulWidget {
 
 class MainWrapperState extends State<MainWrapper> {
   late int _selectedIndex;
-  static const Color dropRed = Color(0xFFFF1111);
   LatLng? _mapTargetLocation;
 
   @override
@@ -61,7 +62,7 @@ class MainWrapperState extends State<MainWrapper> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: dropRed,
+        selectedItemColor: AppColors.dropRed,
         unselectedItemColor: Colors.grey.shade400,
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -89,8 +90,6 @@ class HomeScreenContent extends StatefulWidget {
 }
 
 class _HomeScreenContentState extends State<HomeScreenContent> {
-  static const Color dropRed = Color(0xFFFF1111);
-  static const Color lightGreen = Color(0xFFF1F8E9);
   String? _selectedCategory;
   final TextEditingController _searchController = TextEditingController();
   final LatLng _userLocation = const LatLng(31.9539, 35.9106);
@@ -135,7 +134,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       width: double.infinity,
       padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 40),
       decoration: const BoxDecoration(
-        color: dropRed,
+        color: AppColors.dropRed,
         borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
       ),
       child: Column(
@@ -206,7 +205,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               filled: true,
               fillColor: Colors.white.withOpacity(0.9),
               hintText: "deal_search_hint".tr(),
-              prefixIcon: const Icon(Icons.search, color: dropRed),
+              prefixIcon: const Icon(Icons.search, color: AppColors.dropRed),
               suffixIcon: _searchController.text.isNotEmpty 
                 ? IconButton(icon: const Icon(Icons.clear, color: Colors.grey), onPressed: () => setState(() => _searchController.clear())) 
                 : null,
@@ -233,31 +232,33 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('deals').orderBy('createdAt', descending: true).snapshots(),
           builder: (context, snapshot) {
+            if (snapshot.hasError) return Center(child: Text("error_occurred".tr()));
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(color: dropRed));
+              return const Center(child: CircularProgressIndicator(color: AppColors.dropRed));
             }
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return _buildEmptyState();
             }
 
+            final now = DateTime.now();
             final filteredDocs = snapshot.data!.docs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+              final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? now;
               
-              // 1. فلترة العروض المنتهية (لا تظهر للمستخدمين)
               if (data['expiryTime'] != null) {
                 DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
-                if (expiry.isBefore(DateTime.now())) return false; // العرض انتهى
+                if (expiry.isBefore(now)) return false; 
               }
 
               if (!isPremium) {
-                final difference = DateTime.now().difference(createdAt);
+                if (now.isBefore(createdAt)) return false;
+                final difference = now.difference(createdAt);
                 if (difference.inHours < 1) return false;
               }
 
               final category = data['category']?.toString();
-              final productName = data['product']?.toString().toLowerCase() ?? "";
-              final storeName = data['storeName']?.toString().toLowerCase() ?? "";
+              final productName = (data['product'] ?? "").toString().toLowerCase();
+              final storeName = (data['storeName'] ?? "").toString().toLowerCase();
               final searchText = _searchController.text.toLowerCase();
 
               bool matchesCategory = true;
@@ -300,26 +301,14 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     final productName = data['product'] ?? "Product";
     final storeName = data['storeName'] ?? "Store";
-    final discount = data['discount'] ?? "0";
+    final discount = data['discount']?.toString() ?? "0";
     final oldPrice = data['oldPrice']?.toString() ?? "";
     final newPrice = data['newPrice']?.toString() ?? "";
     final user = FirebaseAuth.instance.currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    double discountVal = double.tryParse(discount.toString()) ?? 0;
+    double discountVal = double.tryParse(discount) ?? 0;
     bool isHot = discountVal > 10;
-
-    String timeLeftStr = "";
-    if (data['expiryTime'] != null) {
-      DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
-      Duration diff = expiry.difference(DateTime.now());
-      if (diff.isNegative) {
-        timeLeftStr = "expired_text".tr();
-      } else if (diff.inHours >= 24) {
-        timeLeftStr = "${diff.inDays} ${"days_short".tr()}";
-      } else {
-        timeLeftStr = "${diff.inHours} ${"hours_short".tr()}";
-      }
-    }
 
     return GestureDetector(
       onTap: () => _showDealDetails(doc),
@@ -327,7 +316,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
         decoration: BoxDecoration(
-          color: isHot ? Colors.orange.withOpacity(0.05) : Theme.of(context).cardColor,
+          color: isHot ? Colors.orange.withOpacity(isDark ? 0.1 : 0.05) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           border: isHot ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1.5) : null,
           boxShadow: [
@@ -340,7 +329,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: Text(storeName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w900, fontSize: 16))),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => StoreProfileScreen(storeId: data['storeId'] ?? doc.id, storeName: storeName)));
+                    },
+                    child: Text(storeName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.dropRed, fontWeight: FontWeight.w900, fontSize: 16))),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -349,10 +344,10 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isHot ? Colors.orange.withOpacity(0.2) : dropRed.withOpacity(0.1), 
+                    color: isHot ? Colors.orange.withOpacity(0.2) : AppColors.dropRed.withOpacity(0.1), 
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(_getCategoryIcon(data['category'], productName), color: dropRed, size: 22),
+                  child: Icon(_getCategoryIcon(data['category'], productName), color: AppColors.dropRed, size: 22),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
@@ -365,7 +360,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                             child: Text(productName, 
                               maxLines: 1, 
                               overflow: TextOverflow.ellipsis, 
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color)),
                           ),
                           if (isHot) ...[
                             const SizedBox(width: 5),
@@ -373,17 +368,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                           ],
                         ],
                       ),
-                      if (timeLeftStr.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Row(
-                            children: [
-                              Icon(Icons.timer_outlined, size: 12, color: isHot ? Colors.orange : dropRed.withOpacity(0.7)),
-                              const SizedBox(width: 4),
-                              Text(timeLeftStr, style: TextStyle(color: isHot ? Colors.orange : dropRed.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -393,13 +377,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   children: [
                     if (newPrice.isNotEmpty) ...[
                       Text("$newPrice ${"jod_currency".tr()}", 
-                        style: TextStyle(color: isHot ? Colors.orange[900] : dropRed, fontWeight: FontWeight.w900, fontSize: 18)),
+                        style: TextStyle(color: isHot ? (isDark ? Colors.orange[300] : Colors.orange[900]) : AppColors.dropRed, fontWeight: FontWeight.w900, fontSize: 18)),
                       if (oldPrice.isNotEmpty)
                         Text("$oldPrice ${"jod_currency".tr()}", 
                           style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 12)),
                     ] else
                       Text("$discount% ${"off_text".tr()}", 
-                        style: TextStyle(color: isHot ? Colors.orange : dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
+                        style: TextStyle(color: isHot ? Colors.orange : AppColors.dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
                     
                     Row(
                       mainAxisSize: MainAxisSize.min,
@@ -423,7 +407,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                           builder: (context, favSnapshot) {
                             bool isFav = favSnapshot.hasData && favSnapshot.data!.exists;
                             return IconButton(
-                              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: dropRed, size: 18),
+                              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: AppColors.dropRed, size: 18),
                               onPressed: () => _toggleFavorite(doc.id, data, isFav),
                               constraints: const BoxConstraints(),
                               padding: const EdgeInsets.all(5),
@@ -445,6 +429,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   Widget _buildLargeFollowButton(String storeId, String storeName) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
@@ -481,8 +466,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isFollowing ? Colors.grey[200] : dropRed.withOpacity(0.1),
-                  foregroundColor: isFollowing ? Colors.black : dropRed,
+                  backgroundColor: isFollowing ? (isDark ? Colors.white12 : Colors.grey[200]) : AppColors.dropRed.withOpacity(0.1),
+                  foregroundColor: isFollowing ? (isDark ? Colors.white : Colors.black) : AppColors.dropRed,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
@@ -509,7 +494,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));
@@ -552,7 +537,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     final Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     final double lat = (data['lat'] as num?)?.toDouble() ?? 31.9539;
     final double lng = (data['lng'] as num?)?.toDouble() ?? 35.9106;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final wrapper = context.findAncestorStateOfType<MainWrapperState>();
+
+    // زيادة عدد النقرات
+    FirebaseFirestore.instance.collection('deals').doc(doc.id).update({'clicks': FieldValue.increment(1)});
 
     double distanceKm = const Distance().as(
       LengthUnit.Kilometer,
@@ -565,7 +554,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => Container(
-        height: MediaQuery.of(sheetContext).size.height * 0.75,
+        height: MediaQuery.of(sheetContext).size.height * 0.85,
         decoration: BoxDecoration(
           color: Theme.of(sheetContext).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
@@ -575,7 +564,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
+              Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: isDark ? Colors.white24 : Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
               const SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -584,10 +573,15 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(data['storeName'] ?? "Store", 
-                          maxLines: 1, 
-                          overflow: TextOverflow.ellipsis, 
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                        InkWell(
+                          onTap: () {
+                            Navigator.pop(sheetContext);
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => StoreProfileScreen(storeId: data['storeId'] ?? doc.id, storeName: data['storeName'] ?? "Store")));
+                          },
+                          child: Text(data['storeName'] ?? "Store", 
+                            maxLines: 1, 
+                            overflow: TextOverflow.ellipsis, 
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.dropRed))),
                         Text(data['product'] ?? "Product", 
                           maxLines: 1, 
                           overflow: TextOverflow.ellipsis, 
@@ -606,17 +600,32 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   ),
                 ],
               ),
-              const SizedBox(height: 25),
-              const Divider(),
               const SizedBox(height: 20),
-              Text("current_deal".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              
+              // نظام التقييم: هل العرض متوفر؟
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50], borderRadius: BorderRadius.circular(15)),
+                child: Row(
+                  children: [
+                    const Expanded(child: Text("هل العرض لا يزال متوفراً؟", style: TextStyle(fontWeight: FontWeight.bold))),
+                    IconButton(onPressed: () => _voteDeal(doc.id, true), icon: const Icon(Icons.thumb_up_alt_outlined, color: Colors.green, size: 20)),
+                    IconButton(onPressed: () => _voteDeal(doc.id, false), icon: const Icon(Icons.thumb_down_alt_outlined, color: Colors.red, size: 20)),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 25),
+              Divider(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              const SizedBox(height: 20),
+              Text("current_deal".tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).textTheme.bodyLarge?.color)),
               const SizedBox(height: 10),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   if (data['newPrice'] != null)
-                    Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: dropRed)),
+                    Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.dropRed)),
                   const SizedBox(width: 12),
                   if (data['oldPrice'] != null)
                     Text("${data['oldPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 18, color: Colors.grey, decoration: TextDecoration.lineThrough)),
@@ -625,17 +634,21 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               const SizedBox(height: 25),
               Container(
                 padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.grey.shade100)),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100], 
+                  borderRadius: BorderRadius.circular(18), 
+                  border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100)
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.location_on_rounded, color: dropRed, size: 22),
+                    const Icon(Icons.location_on_rounded, color: AppColors.dropRed, size: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         data['location'] ?? "location_hint".tr(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyLarge?.color),
                       ),
                     ),
                   ],
@@ -654,8 +667,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     elevation: 0,
                   ),
                   onPressed: () {
-                    _markAsBought(data);
-                    Navigator.pop(sheetContext);
+                    _markAsBought(doc.id, data);
                   },
                   icon: const Icon(Icons.check_circle_outline, color: Colors.white),
                   label: Text("mark_as_bought".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
@@ -669,12 +681,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                       height: 55,
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: dropRed, width: 1.5),
+                          side: const BorderSide(color: AppColors.dropRed, width: 1.5),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         ),
                         onPressed: () => _openMaps(lat, lng),
-                        icon: const Icon(Icons.directions_rounded, color: dropRed, size: 20),
-                        label: Text("go_action".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 15)),
+                        icon: const Icon(Icons.directions_rounded, color: AppColors.dropRed, size: 20),
+                        label: Text("go_action".tr(), style: const TextStyle(color: AppColors.dropRed, fontWeight: FontWeight.bold, fontSize: 15)),
                       ),
                     ),
                   ),
@@ -684,7 +696,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                       height: 55,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: dropRed,
+                          backgroundColor: AppColors.dropRed,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           elevation: 0,
                         ),
@@ -709,17 +721,53 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     );
   }
 
-  Future<void> _markAsBought(Map<String, dynamic> data) async {
+  void _voteDeal(String dealId, bool isUpvote) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+
+    final voteRef = FirebaseFirestore.instance
+        .collection('deals')
+        .doc(dealId)
+        .collection('user_votes')
+        .doc(user.uid);
+
+    final voteDoc = await voteRef.get();
+    if (voteDoc.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("لقد قمت بالتصويت مسبقاً على هذا العرض")));
+      return;
+    }
+
+    await voteRef.set({'vote': isUpvote, 'timestamp': FieldValue.serverTimestamp()});
+    FirebaseFirestore.instance.collection('deals').doc(dealId).update({
+      isUpvote ? 'upvotes' : 'downvotes': FieldValue.increment(1)
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isUpvote ? "شكراً لتقييمك!" : "سنتحقق من صحة العرض، شكراً لك"), backgroundColor: isUpvote ? Colors.green : Colors.orange));
+  }
+
+  Future<void> _markAsBought(String dealId, Map<String, dynamic> data) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final boughtRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('bought_deals')
+        .doc(dealId);
+
+    final boughtDoc = await boughtRef.get();
+    if (boughtDoc.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("هذا العرض محسوب مسبقاً في توفيرك")));
+      return;
+    }
 
     double oldPrice = double.tryParse(data['oldPrice']?.toString() ?? "0") ?? 0;
     double newPrice = double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
     double savedAmount = oldPrice - newPrice;
     if (savedAmount <= 0) return;
 
+    await boughtRef.set({'boughtAt': FieldValue.serverTimestamp(), 'saved': savedAmount});
+
     final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-    
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       DocumentSnapshot userDoc = await transaction.get(userRef);
       if (userDoc.exists) {
@@ -732,6 +780,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     });
 
     if (mounted) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("saved_amount_msg".tr(args: [savedAmount.toStringAsFixed(3)])),
@@ -753,11 +802,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     if (currentlyFav) {
       await favRef.delete();
+      FirebaseFirestore.instance.collection('deals').doc(dealId).update({'favoritesCount': FieldValue.increment(-1)});
     } else {
       await favRef.set({
         ...dealData,
         'savedAt': FieldValue.serverTimestamp(),
       });
+      FirebaseFirestore.instance.collection('deals').doc(dealId).update({'favoritesCount': FieldValue.increment(1)});
     }
   }
 
@@ -860,6 +911,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   }
 
   Widget _buildNeumorphicActionButton({required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -869,12 +921,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black12,
+              color: isDark ? Colors.white.withOpacity(0.02) : Colors.white,
               blurRadius: 15,
               offset: const Offset(-8, -8),
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.12), 
+              color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.12), 
               blurRadius: 15,
               offset: const Offset(8, 8),
             ),
@@ -940,15 +992,15 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           Material(
             elevation: isSelected ? 10 : 5,
             shape: const CircleBorder(),
-            shadowColor: isSelected ? dropRed : Colors.black26,
+            shadowColor: isSelected ? AppColors.dropRed : Colors.black26,
             child: CircleAvatar(
               radius: 28,
-              backgroundColor: isSelected ? dropRed : Theme.of(context).cardColor,
-              child: Icon(icon, color: isSelected ? Colors.white : dropRed, size: 28),
+              backgroundColor: isSelected ? AppColors.dropRed : Theme.of(context).cardColor,
+              child: Icon(icon, color: isSelected ? Colors.white : AppColors.dropRed, size: 28),
             ),
           ),
           const SizedBox(height: 10),
-          Text(categoryKey.tr(), style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? dropRed : null)),
+          Text(categoryKey.tr(), style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? AppColors.dropRed : null)),
         ],
       ),
     );
@@ -963,6 +1015,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
   Widget _buildSavingsCard() {
     final user = FirebaseAuth.instance.currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
       builder: (context, snapshot) {
@@ -974,7 +1027,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(color: lightGreen.withOpacity(0.3), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.green.withOpacity(0.1))),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.green.withOpacity(0.1) : const Color(0xFFF1F8E9).withOpacity(0.3), 
+            borderRadius: BorderRadius.circular(25), 
+            border: Border.all(color: Colors.green.withOpacity(0.1))
+          ),
           child: Row(
             children: [
               const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.account_balance_wallet, color: Colors.white)),
@@ -983,7 +1040,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("total_saved_title".tr(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                  Text("${totalSaved.toStringAsFixed(3)} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                  Text("${totalSaved.toStringAsFixed(3)} ${"jod_currency".tr()}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : Colors.black)),
                 ],
               )
             ],

@@ -11,20 +11,21 @@ class SavedStoresScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "saved_offers".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -40,7 +41,7 @@ class SavedStoresScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(context);
           }
 
           return ListView.builder(
@@ -62,6 +63,7 @@ class SavedStoresScreen extends StatelessWidget {
     final productName = data['product'] ?? "Product";
     final storeName = data['storeName'] ?? "Store";
     final discount = data['discount'] ?? "0%";
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     IconData categoryIcon = Icons.local_offer_rounded;
     if (category == 'cat_food' || productName.toString().toLowerCase().contains('burger')) {
@@ -76,9 +78,9 @@ class SavedStoresScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
       ),
       child: Row(
@@ -93,7 +95,7 @@ class SavedStoresScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(productName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
                 Text(storeName, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
               ],
             ),
@@ -126,12 +128,13 @@ class SavedStoresScreen extends StatelessWidget {
         .delete();
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.favorite_border_rounded, size: 80, color: Colors.grey[200]),
+          Icon(Icons.favorite_border_rounded, size: 80, color: isDark ? Colors.white10 : Colors.grey[200]),
           const SizedBox(height: 15),
           Text("no_saved_offers".tr(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
         ],

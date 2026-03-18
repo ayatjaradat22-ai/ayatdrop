@@ -9,18 +9,19 @@ class ExclusiveDealsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "drop_exclusive".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -34,7 +35,7 @@ class ExclusiveDealsScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(context);
           }
 
           return ListView.builder(
@@ -52,11 +53,12 @@ class ExclusiveDealsScreen extends StatelessWidget {
 
   Widget _buildExclusiveCard(BuildContext context, DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(color: dropRed.withOpacity(0.2), width: 2),
         boxShadow: [BoxShadow(color: dropRed.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
@@ -77,8 +79,8 @@ class ExclusiveDealsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(data['storeName'] ?? "Store", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-                      Text(data['product'] ?? "Deal", style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+                      Text(data['storeName'] ?? "Store", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: isDark ? Colors.white : Colors.black)),
+                      Text(data['product'] ?? "Deal", style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[700], fontSize: 14)),
                     ],
                   ),
                 ),
@@ -97,24 +99,24 @@ class ExclusiveDealsScreen extends StatelessWidget {
                 Text(
                   "show_at_cashier".tr(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white70 : Colors.black87),
                 ),
                 const SizedBox(height: 20),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid),
+                    border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200, style: BorderStyle.solid),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.qr_code_2_rounded, size: 24),
+                      Icon(Icons.qr_code_2_rounded, size: 24, color: isDark ? Colors.white : Colors.black),
                       const SizedBox(width: 10),
                       Text("DROP-${doc.id.substring(0, 5).toUpperCase()}", 
-                        style: const TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 18)),
+                        style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black)),
                     ],
                   ),
                 ),
@@ -126,12 +128,13 @@ class ExclusiveDealsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.stars_rounded, size: 80, color: Colors.grey[200]),
+          Icon(Icons.stars_rounded, size: 80, color: isDark ? Colors.white10 : Colors.grey[200]),
           const SizedBox(height: 15),
           Text("coming_soon".tr(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 8),

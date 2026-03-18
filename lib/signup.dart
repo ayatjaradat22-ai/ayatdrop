@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'database_service.dart';
 import 'home.dart';
+import 'app_colors.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -20,15 +21,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _confirmPassController = TextEditingController();
 
   bool _isPasswordHidden = true;
-  static const Color dropRed = Color(0xFFFF1111);
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
 
   Future<void> signUpUser() async {
-    if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passController.text.isEmpty) {
+    final String name = _nameController.text.trim();
+    final String email = _emailController.text.trim();
+    final String password = _passController.text.trim();
+    final String confirmPassword = _confirmPassController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       _showSnackBar("fill_all_fields_error".tr());
       return;
     }
 
-    if (_passController.text != _confirmPassController.text) {
+    if (!_isValidEmail(email)) {
+      _showSnackBar("invalid_email_format".tr());
+      return;
+    }
+
+    if (password.length < 6) {
+      _showSnackBar("password_too_short".tr());
+      return;
+    }
+
+    if (password != confirmPassword) {
       _showSnackBar("passwords_not_match".tr());
       return;
     }
@@ -36,20 +55,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator(color: dropRed)),
+      builder: (context) => const Center(child: CircularProgressIndicator(color: AppColors.dropRed)),
     );
 
     try {
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passController.text.trim(),
+        email: email,
+        password: password,
       );
 
       if (userCredential.user != null) {
         await DatabaseService().saveUserToFirestore(
           uid: userCredential.user!.uid,
-          name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
+          name: name,
+          email: email,
         );
       }
 
@@ -61,6 +80,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
         MaterialPageRoute(builder: (context) => const MainWrapper()),
       );
 
+    } on FirebaseAuthException catch (e) {
+      if (mounted) Navigator.pop(context);
+      String errorMessage = "error_occurred".tr();
+      if (e.code == 'email-already-in-use') {
+        errorMessage = "email_already_used".tr();
+      } else if (e.code == 'weak-password') {
+        errorMessage = "password_too_short".tr();
+      }
+      _showSnackBar(errorMessage);
     } catch (e) {
       if (mounted) Navigator.pop(context);
       _showSnackBar(e.toString());
@@ -69,7 +97,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: dropRed),
+      SnackBar(content: Text(message), backgroundColor: AppColors.dropRed),
     );
   }
 
@@ -116,7 +144,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               SizedBox(
                                 width: double.infinity, height: 55,
                                 child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                                   onPressed: signUpUser,
                                   child: Text("signup_button".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                 ),

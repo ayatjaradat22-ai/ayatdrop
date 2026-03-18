@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'home.dart';
 
 class SmartShoppingListScreen extends StatefulWidget {
   const SmartShoppingListScreen({super.key});
@@ -48,28 +47,29 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
   }
 
   void _findDealsForItem(String itemName) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         ),
         child: Column(
           children: [
             const SizedBox(height: 15),
-            Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+            Container(width: 40, height: 5, decoration: BoxDecoration(color: isDark ? Colors.white24 : Colors.grey[300], borderRadius: BorderRadius.circular(10))),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
                 "finding_deals_for".tr(args: [itemName]),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
               ),
             ),
-            const Divider(),
+            Divider(color: isDark ? Colors.white10 : Colors.grey.shade200),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('deals').snapshots(),
@@ -83,7 +83,7 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
                   }).toList();
 
                   if (results.isEmpty) {
-                    return Center(child: Text("no_deals_found_for_item".tr()));
+                    return Center(child: Text("no_deals_found_for_item".tr(), style: const TextStyle(color: Colors.grey)));
                   }
 
                   return ListView.builder(
@@ -92,11 +92,12 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
                     itemBuilder: (context, index) {
                       final data = results[index].data() as Map<String, dynamic>;
                       return Card(
+                        color: Theme.of(context).cardColor,
                         margin: const EdgeInsets.only(bottom: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         child: ListTile(
-                          title: Text(data['product'] ?? ""),
-                          subtitle: Text(data['storeName'] ?? ""),
+                          title: Text(data['product'] ?? "", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+                          subtitle: Text(data['storeName'] ?? "", style: const TextStyle(color: Colors.grey)),
                           trailing: Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
                         ),
                       );
@@ -113,18 +114,19 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "smart_shopping_list".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
         ),
       ),
       body: Column(
@@ -137,13 +139,15 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: TextField(
                       controller: _itemController,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
                       decoration: InputDecoration(
                         hintText: "shopping_list_hint".tr(),
+                        hintStyle: const TextStyle(color: Colors.grey),
                         border: InputBorder.none,
                       ),
                     ),
@@ -161,7 +165,7 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: isDark ? Colors.white10 : Colors.grey.shade200),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -201,15 +205,16 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
   }
 
   Widget _buildShoppingItem(String id, String name) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
       ),
       child: ListTile(
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

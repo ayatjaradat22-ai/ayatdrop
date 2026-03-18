@@ -42,17 +42,19 @@ class _SettingScreenState extends State<SettingScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).iconTheme.color ?? Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text("settings".tr(), style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color ?? Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+        title: Text("settings".tr(), style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
         centerTitle: false,
       ),
       body: SingleChildScrollView(
@@ -127,10 +129,11 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   Widget _buildModernTile(IconData icon, String title, VoidCallback onTap, {Widget? trailing}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.light ? Colors.grey[50] : Colors.white.withOpacity(0.05),
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
         borderRadius: BorderRadius.circular(18),
       ),
       child: ListTile(
@@ -139,13 +142,13 @@ class _SettingScreenState extends State<SettingScreen> {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black26, 
+            color: isDark ? Colors.black26 : Colors.white, 
             borderRadius: BorderRadius.circular(12)
           ),
           child: Icon(icon, color: dropRed, size: 22),
         ),
-        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        trailing: trailing ?? const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.black26),
+        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black)),
+        trailing: trailing ?? Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white24 : Colors.black26),
       ),
     );
   }
@@ -201,12 +204,13 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   Widget _buildLogoutButton(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       width: double.infinity,
       child: TextButton(
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.grey.shade200)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade200)),
         ),
         onPressed: () => _logout(),
         child: Row(

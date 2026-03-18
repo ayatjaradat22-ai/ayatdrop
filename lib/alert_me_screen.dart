@@ -55,18 +55,19 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "alert_me_title".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -77,9 +78,9 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.05),
+                color: isDark ? Colors.blue.withOpacity(0.1) : Colors.blue.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                border: Border.all(color: Colors.blue.withOpacity(0.2)),
               ),
               child: Row(
                 children: [
@@ -88,7 +89,7 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
                   Expanded(
                     child: Text(
                       "brand_tracking_desc".tr(),
-                      style: TextStyle(color: Colors.blue.shade900, fontSize: 14, height: 1.5, fontWeight: FontWeight.w500),
+                      style: TextStyle(color: isDark ? Colors.blue[200] : Colors.blue.shade900, fontSize: 14, height: 1.5, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -96,7 +97,7 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
             ),
             const SizedBox(height: 35),
             
-            Text("add_brand_button".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("add_brand_button".tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
             const SizedBox(height: 15),
             Row(
               children: [
@@ -104,13 +105,15 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: TextField(
                       controller: _brandController,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
                       decoration: InputDecoration(
                         hintText: "track_brand_hint".tr(),
+                        hintStyle: const TextStyle(color: Colors.grey),
                         border: InputBorder.none,
                       ),
                     ),
@@ -129,7 +132,7 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
             ),
             
             const SizedBox(height: 40),
-            Text("followed_brands".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("followed_brands".tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
             const SizedBox(height: 15),
             
             StreamBuilder<QuerySnapshot>(
@@ -161,14 +164,14 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(data['name'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(data['name'] ?? "", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
                           IconButton(
                             icon: const Icon(Icons.notifications_off_outlined, color: Colors.grey, size: 20),
                             onPressed: () => _unfollowBrand(id),

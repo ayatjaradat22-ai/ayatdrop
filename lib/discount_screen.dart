@@ -33,21 +33,30 @@ class _DiscountScreenState extends State<DiscountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = widget.isPremium 
+        ? premiumBlack 
+        : (isDark ? const Color(0xFF121212) : Colors.white);
+    
+    final contentColor = widget.isPremium 
+        ? goldAccent 
+        : (isDark ? Colors.white : Colors.black);
+
     return Scaffold(
-      backgroundColor: widget.isPremium ? premiumBlack : Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: widget.isPremium ? premiumBlack : Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: widget.isPremium ? goldAccent : Colors.black),
+              color: contentColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.isPremium ? "PREMIUM PASS" : "STANDARD DROP",
           style: TextStyle(
-            color: widget.isPremium ? goldAccent : Colors.black,
+            color: contentColor,
             fontWeight: FontWeight.w900,
             letterSpacing: 2,
             fontSize: 16,
@@ -62,17 +71,17 @@ class _DiscountScreenState extends State<DiscountScreen> {
             const SizedBox(height: 30),
 
             // 1. قسم الـ QR المصمم كبطاقة (Ticket)
-            _buildDiscountTicket(),
+            _buildDiscountTicket(isDark),
 
             const SizedBox(height: 40),
 
             // 2. تفاصيل العرض (Intensity Card)
-            _buildInfoCard(),
+            _buildInfoCard(isDark),
 
             const SizedBox(height: 40),
 
             // 3. تعليمات الاستخدام بأسلوب عصري
-            _buildModernInstructions(),
+            _buildModernInstructions(isDark),
 
             const SizedBox(height: 50),
 
@@ -83,7 +92,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
             Text(
               "Tap to refresh after use",
               style: TextStyle(
-                color: widget.isPremium ? Colors.white30 : Colors.black26,
+                color: widget.isPremium ? Colors.white30 : (isDark ? Colors.white30 : Colors.black26),
                 fontSize: 12,
               ),
             ),
@@ -94,20 +103,20 @@ class _DiscountScreenState extends State<DiscountScreen> {
     );
   }
 
-  Widget _buildDiscountTicket() {
+  Widget _buildDiscountTicket(bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
-        color: widget.isPremium ? const Color(0xFF1E1E1E) : Colors.grey[50],
+        color: widget.isPremium ? const Color(0xFF1E1E1E) : (isDark ? const Color(0xFF1E1E1E) : Colors.grey[50]),
         borderRadius: BorderRadius.circular(40),
         border: Border.all(
-          color: widget.isPremium ? goldAccent.withOpacity(0.5) : Colors.grey.shade200,
+          color: widget.isPremium ? goldAccent.withOpacity(0.5) : (isDark ? Colors.white10 : Colors.grey.shade200),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.isPremium ? goldAccent.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+            color: widget.isPremium ? goldAccent.withOpacity(0.05) : (isDark ? Colors.black26 : Colors.black.withOpacity(0.05)),
             blurRadius: 30,
             offset: const Offset(0, 15),
           )
@@ -135,7 +144,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
               letterSpacing: 3,
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              color: widget.isPremium ? Colors.white54 : Colors.grey,
+              color: widget.isPremium ? Colors.white54 : (isDark ? Colors.white54 : Colors.grey),
             ),
           ),
           const SizedBox(height: 8),
@@ -152,7 +161,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
     );
   }
 
-  Widget _buildInfoCard() {
+  Widget _buildInfoCard(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -183,7 +192,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
                   "Applicable at all partner stores.",
                   style: TextStyle(
                     fontSize: 12,
-                    color: widget.isPremium ? Colors.white70 : Colors.black54,
+                    color: widget.isPremium ? Colors.white70 : (isDark ? Colors.white70 : Colors.black54),
                   ),
                 ),
               ],
@@ -194,27 +203,27 @@ class _DiscountScreenState extends State<DiscountScreen> {
     );
   }
 
-  Widget _buildModernInstructions() {
+  Widget _buildModernInstructions(bool isDark) {
     return Column(
       children: [
-        _instructionItem(Icons.qr_code_scanner_rounded, "Show QR to the cashier"),
+        _instructionItem(Icons.qr_code_scanner_rounded, "Show QR to the cashier", isDark),
         const SizedBox(height: 15),
-        _instructionItem(Icons.verified_user_outlined, "Wait for verification"),
+        _instructionItem(Icons.verified_user_outlined, "Wait for verification", isDark),
         const SizedBox(height: 15),
-        _instructionItem(Icons.celebration_rounded, "Enjoy your savings!"),
+        _instructionItem(Icons.celebration_rounded, "Enjoy your savings!", isDark),
       ],
     );
   }
 
-  Widget _instructionItem(IconData icon, String text) {
+  Widget _instructionItem(IconData icon, String text, bool isDark) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: widget.isPremium ? goldAccent : Colors.grey),
+        Icon(icon, size: 20, color: widget.isPremium ? goldAccent : (isDark ? Colors.white54 : Colors.grey)),
         const SizedBox(width: 15),
         Text(
           text,
           style: TextStyle(
-            color: widget.isPremium ? Colors.white70 : Colors.black87,
+            color: widget.isPremium ? Colors.white70 : (isDark ? Colors.white70 : Colors.black87),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -239,7 +248,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
             )
           ],
         ),
-        child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 35),
+        child: Icon(Icons.refresh_rounded, color: widget.isPremium ? Colors.black : Colors.white, size: 35),
       ),
     );
   }

@@ -8,19 +8,20 @@ class SavedAddressesScreen extends StatelessWidget {
 
     @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "saved_addresses".tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: SafeArea(
@@ -40,6 +41,7 @@ class SavedAddressesScreen extends StatelessWidget {
                   ),
 
                   _buildAddressTile(
+                    context,
                     title: "home_label".tr(),
                     address: "Address, Vancouver, BC V6B 4G1",
                     icon: Icons.home_rounded,
@@ -47,6 +49,7 @@ class SavedAddressesScreen extends StatelessWidget {
                   ),
 
                   _buildAddressTile(
+                    context,
                     title: "office_label".tr(),
                     address: "725 Granville St, Vancouver, BC V7Y 1G5",
                     icon: Icons.work_rounded,
@@ -79,19 +82,21 @@ class SavedAddressesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAddressTile({
+  Widget _buildAddressTile(
+    BuildContext context, {
     required String title,
     required String address,
     required IconData icon,
     required bool isDefault
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDefault ? dropRed.withOpacity(0.3) : Colors.grey.shade100),
+        border: Border.all(color: isDefault ? dropRed.withOpacity(0.3) : (isDark ? Colors.white10 : Colors.grey.shade100)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -105,10 +110,10 @@ class SavedAddressesScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDefault ? dropRed.withOpacity(0.1) : Colors.grey.shade50,
+              color: isDefault ? dropRed.withOpacity(0.1) : (isDark ? Colors.white10 : Colors.grey.shade50),
               borderRadius: BorderRadius.circular(15),
             ),
-            child: Icon(icon, color: isDefault ? dropRed : Colors.grey[400], size: 24),
+            child: Icon(icon, color: isDefault ? dropRed : (isDark ? Colors.white54 : Colors.grey[400]), size: 24),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -117,7 +122,7 @@ class SavedAddressesScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
                     if (isDefault) ...[
                       const SizedBox(width: 8),
                       Container(
@@ -136,7 +141,7 @@ class SavedAddressesScreen extends StatelessWidget {
           Column(
             children: [
               IconButton(
-                icon: const Icon(Icons.edit_outlined, color: Colors.grey, size: 20),
+                icon: Icon(Icons.edit_outlined, color: isDark ? Colors.white54 : Colors.grey, size: 20),
                 onPressed: () {},
               ),
             ],

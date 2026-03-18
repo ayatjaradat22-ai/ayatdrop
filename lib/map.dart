@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'premium.dart';
+import 'app_colors.dart';
 
 class MapScreen extends StatefulWidget {
   final LatLng? targetLocation;
@@ -20,7 +21,6 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   final MapController _mapController = MapController();
   LatLng _initialCenter = const LatLng(31.9539, 35.9106); 
-  static const Color dropRed = Color(0xFFFF1111);
   Position? _userPosition;
   late AnimationController _fireAnimationController;
   String? _selectedCategory;
@@ -59,7 +59,14 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Future<void> _getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
+      if (!serviceEnabled) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text("location_service_disabled".tr()), backgroundColor: Colors.orange)
+           );
+        }
+        return;
+      }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -125,13 +132,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('deals').snapshots(),
               builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: AppColors.dropRed));
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                 Map<String, List<DocumentSnapshot>> storeDeals = {};
                 for (var doc in snapshot.data!.docs) {
                   final data = doc.data() as Map<String, dynamic>;
                   
-                  // 1. فلترة العروض المنتهية (لا تظهر على الخريطة)
                   if (data['expiryTime'] != null) {
                     DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
                     if (expiry.isBefore(DateTime.now())) continue;
@@ -216,7 +223,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             child: FloatingActionButton(
               mini: true,
               backgroundColor: Colors.white,
-              child: const Icon(Icons.my_location, color: dropRed),
+              child: const Icon(Icons.my_location, color: AppColors.dropRed),
               onPressed: () {
                 if (_userPosition != null) {
                   _mapController.move(LatLng(_userPosition!.latitude, _userPosition!.longitude), 15.0);
@@ -237,7 +244,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     int dealsCount = deals.length;
 
     return GestureDetector(
-      onTap: () => _showStoreDealsSheet(storeId, storeName, (storeData['lat'] as num).toDouble(), (storeData['lng'] as num).toDouble(), deals),
+      onTap: () => _showStoreDealsSheet(storeId, storeName, (storeData['lat'] as num?)?.toDouble() ?? 31.9539, (storeData['lng'] as num?)?.toDouble() ?? 35.9106, deals),
       child: Container(
         alignment: Alignment.bottomCenter, 
         child: SingleChildScrollView( 
@@ -249,7 +256,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: dropRed,
+                    color: AppColors.dropRed,
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
                   ),
@@ -284,7 +291,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: hasHotDeal ? Colors.orange : dropRed, width: 2),
+                      border: Border.all(color: hasHotDeal ? Colors.orange : AppColors.dropRed, width: 2),
                       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
                     ),
                     child: CircleAvatar(
@@ -293,7 +300,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          Icon(Icons.storefront_rounded, color: hasHotDeal ? Colors.orange : dropRed, size: 28),
+                          Icon(Icons.storefront_rounded, color: hasHotDeal ? Colors.orange : AppColors.dropRed, size: 28),
                           Positioned(
                             right: -2,
                             top: -2,
@@ -324,7 +331,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               ),
               CustomPaint(
                 size: const Size(12, 6),
-                painter: TrianglePainter(color: hasHotDeal ? Colors.orange : dropRed),
+                painter: TrianglePainter(color: hasHotDeal ? Colors.orange : AppColors.dropRed),
               ),
               const SizedBox(height: 4),
             ],
@@ -336,6 +343,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   void _showStoreDealsSheet(String storeId, String storeName, double lat, double lng, List<DocumentSnapshot> deals) {
     String distance = _calculateDistance(lat, lng);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
@@ -350,7 +358,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         child: Column(
           children: [
             const SizedBox(height: 15),
-            Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+            Container(width: 40, height: 5, decoration: BoxDecoration(color: isDark ? Colors.white24 : Colors.grey[300], borderRadius: BorderRadius.circular(10))),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -358,7 +366,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.storefront_rounded, color: dropRed, size: 30),
+                      const Icon(Icons.storefront_rounded, color: AppColors.dropRed, size: 30),
                       const SizedBox(width: 15),
                       Expanded(
                         child: Column(
@@ -367,7 +375,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                             Text(storeName, 
                               maxLines: 2, 
                               overflow: TextOverflow.ellipsis, 
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
                             const SizedBox(height: 5),
                             if (distance.isNotEmpty)
                               Text(
@@ -439,6 +447,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               .snapshots(),
           builder: (context, followSnapshot) {
             bool isFollowing = followSnapshot.hasData && followSnapshot.data!.exists;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
 
             return SizedBox(
               width: double.infinity,
@@ -452,8 +461,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isFollowing ? Colors.grey[200] : dropRed.withOpacity(0.1),
-                  foregroundColor: isFollowing ? Colors.black : dropRed,
+                  backgroundColor: isFollowing ? (isDark ? Colors.white12 : Colors.grey[200]) : AppColors.dropRed.withOpacity(0.1),
+                  foregroundColor: isFollowing ? (isDark ? Colors.white : Colors.black) : AppColors.dropRed,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -500,7 +509,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));
@@ -515,26 +524,27 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Widget _buildDealItem(Map<String, dynamic> data) {
     double discount = double.tryParse(data['discount']?.toString() ?? "0") ?? 0;
     bool isHot = discount > 10;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isHot ? Colors.orange.withOpacity(0.05) : Theme.of(context).cardColor,
+        color: isHot ? Colors.orange.withOpacity(isDark ? 0.1 : 0.05) : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: isHot ? Colors.orange.withOpacity(0.3) : Colors.grey.shade100, width: isHot ? 1.5 : 1),
+        border: Border.all(color: isHot ? Colors.orange.withOpacity(0.3) : (isDark ? Colors.white10 : Colors.grey.shade100), width: isHot ? 1.5 : 1),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isHot ? Colors.orange.withOpacity(0.2) : dropRed.withOpacity(0.1), 
+              color: isHot ? Colors.orange.withOpacity(0.2) : AppColors.dropRed.withOpacity(0.1), 
               borderRadius: BorderRadius.circular(10)
             ),
             child: Icon(
               isHot ? Icons.local_fire_department_rounded : Icons.shopping_bag_outlined, 
-              color: isHot ? Colors.orange : dropRed, 
+              color: isHot ? Colors.orange : AppColors.dropRed, 
               size: 20
             ),
           ),
@@ -546,9 +556,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 Text(data['product'] ?? "", 
                   maxLines: 1, 
                   overflow: TextOverflow.ellipsis, 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black)),
                 Text("${data['discount']}% ${"off_text".tr()}", 
-                  style: TextStyle(color: isHot ? Colors.orange : dropRed, fontWeight: FontWeight.bold, fontSize: 12)),
+                  style: TextStyle(color: isHot ? Colors.orange : AppColors.dropRed, fontWeight: FontWeight.bold, fontSize: 12)),
               ],
             ),
           ),
@@ -557,7 +567,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text("${data['newPrice']} ${"jod_currency".tr()}", 
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: isHot ? Colors.orange[900] : null)),
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: isHot ? (isDark ? Colors.orange[300] : Colors.orange[900]) : (isDark ? Colors.white : Colors.black))),
               if (data['oldPrice'] != null)
                 Text("${data['oldPrice']} ${"jod_currency".tr()}", 
                   style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 10)),
@@ -569,6 +579,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildTopSearchAndFilters() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SafeArea(
       child: Column(
         children: [
@@ -584,21 +595,23 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    border: Border.all(color: isDark ? Colors.white10 : Colors.white.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.search, color: dropRed),
+                      const Icon(Icons.search, color: AppColors.dropRed),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black),
                           decoration: InputDecoration(
                             hintText: "search_nearby_hint".tr(),
+                            hintStyle: const TextStyle(color: Colors.grey),
                             border: InputBorder.none,
                           ),
                         ),
                       ),
-                      const Icon(Icons.filter_list, color: dropRed),
+                      const Icon(Icons.filter_list, color: AppColors.dropRed),
                     ],
                   ),
                 ),
@@ -631,9 +644,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       child: FilterChip(
         selected: isSelected,
         label: Text(label, style: TextStyle(color: isSelected ? Colors.white : null, fontSize: 12, fontWeight: FontWeight.bold)),
-        avatar: Icon(icon, color: isSelected ? Colors.white : dropRed, size: 16),
+        avatar: Icon(icon, color: isSelected ? Colors.white : AppColors.dropRed, size: 16),
         backgroundColor: Theme.of(context).cardColor,
-        selectedColor: dropRed,
+        selectedColor: AppColors.dropRed,
         checkmarkColor: Colors.white,
         onSelected: (selected) {
           setState(() {

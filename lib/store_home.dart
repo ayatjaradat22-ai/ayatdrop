@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:geolocator/geolocator.dart';
 import 'checkout_screen.dart';
+import 'store_analytics_screen.dart';
+import 'app_colors.dart';
 
 class StoreHomeScreen extends StatefulWidget {
   const StoreHomeScreen({super.key});
@@ -20,6 +22,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   final TextEditingController _productController = TextEditingController();
   final TextEditingController _oldPriceController = TextEditingController();
   final TextEditingController _newPriceController = TextEditingController();
+  final TextEditingController _aboutController = TextEditingController();
   
   String discountPercent = "0% OFF";
   String productName = "";
@@ -36,10 +39,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
 
   static const Color dropRed = Color(0xFFFF0000);
   static const Color goldColor = Color(0xFFFFD700);
-  static const Color scaffoldBg = Color(0xFFF9F6F2);
 
   bool _isPriceMode = true; 
   bool _isUpdatingLocation = false;
+  bool _isSavingAbout = false;
 
   @override
   void initState() {
@@ -66,6 +69,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           }
           
           storeName = data['name'] ?? 'Store';
+          _aboutController.text = data['about'] ?? "";
           storeLat = (data['lat'] as num?)?.toDouble();
           storeLng = (data['lng'] as num?)?.toDouble();
           subscriptionExpiry = (data['subscriptionExpiry'] as Timestamp?)?.toDate();
@@ -75,20 +79,24 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     }
   }
 
-  Future<void> _resetLocationCooldown() async {
+  Future<void> _saveAboutStore() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-      'lastLocationUpdate': FieldValue.delete(),
-    });
-
-    setState(() => lastLocationUpdate = null);
     
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("DEBUG: Location cooldown reset!"), backgroundColor: Colors.orange)
-      );
+    setState(() => _isSavingAbout = true);
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'about': _aboutController.text.trim(),
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("save_changes".tr()), backgroundColor: Colors.green)
+        );
+      }
+    } catch (e) {
+      _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _isSavingAbout = false);
     }
   }
 
@@ -121,7 +129,9 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
         }
       }
 
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high)
+      );
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -146,13 +156,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       }
       await batch.commit();
       
-      setState(() {
-        storeLat = position.latitude;
-        storeLng = position.longitude;
-        lastLocationUpdate = DateTime.now();
-      });
-      
       if (mounted) {
+        setState(() {
+          storeLat = position.latitude;
+          storeLng = position.longitude;
+          lastLocationUpdate = DateTime.now();
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("save_changes".tr()), backgroundColor: Colors.green)
         );
@@ -192,8 +201,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       'lastPaymentDate': FieldValue.serverTimestamp(),
     });
 
-    setState(() => subscriptionExpiry = newExpiry);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("publish_discount_button".tr()), backgroundColor: Colors.green));
+    if (mounted) {
+      setState(() => subscriptionExpiry = newExpiry);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("publish_discount_button".tr()), backgroundColor: Colors.green));
+    }
   }
 
   @override
@@ -203,6 +214,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     _productController.dispose();
     _oldPriceController.dispose();
     _newPriceController.dispose();
+    _aboutController.dispose();
     super.dispose();
   }
 
@@ -230,6 +242,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Future<void> _pickExpiry() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final DateTime initial = _selectedExpiry.isBefore(DateTime.now()) 
         ? DateTime.now().add(const Duration(minutes: 5)) 
         : _selectedExpiry;
@@ -239,14 +252,28 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       initialDate: initial,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 30)),
-      builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: dropRed)), child: child!),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: isDark 
+            ? const ColorScheme.dark(primary: dropRed, onPrimary: Colors.white, surface: Color(0xFF1E1E1E))
+            : const ColorScheme.light(primary: dropRed)
+        ), 
+        child: child!
+      ),
     );
 
-    if (pickedDate != null) {
+    if (pickedDate != null && mounted) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(initial),
-        builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: dropRed)), child: child!),
+        builder: (context, child) => Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark 
+              ? const ColorScheme.dark(primary: dropRed, onPrimary: Colors.white, surface: Color(0xFF1E1E1E))
+              : const ColorScheme.light(primary: dropRed)
+          ), 
+          child: child!
+        ),
       );
 
       if (pickedTime != null) {
@@ -279,29 +306,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     });
   }
 
-  Future<void> _notifyFollowers(String storeId, String storeName, String product, String discount) async {
-    final followersSnapshot = await FirebaseFirestore.instance
-        .collectionGroup('following_stores')
-        .where(FieldPath.documentId, isEqualTo: storeId)
-        .get();
-
-    for (var doc in followersSnapshot.docs) {
-      final userPath = doc.reference.path.split('/');
-      if (userPath.length >= 2) {
-        final userId = userPath[1];
-        
-        await FirebaseFirestore.instance.collection('users').doc(userId).collection('notifications').add({
-          'title': "خبر عاجل من متجر تتابعه! 🔥",
-          'body': "نشر $storeName عرضاً جديداً على $product بخصم $discount%!",
-          'timestamp': FieldValue.serverTimestamp(),
-          'isRead': false,
-          'type': 'follow_update',
-          'storeId': storeId,
-        });
-      }
-    }
-  }
-
   Future<void> _publishOrUpdateDiscount() async {
     final user = FirebaseAuth.instance.currentUser;
     if (_productController.text.isEmpty || _oldPriceController.text.isEmpty || _selectedDealCategory == null || user == null) {
@@ -311,6 +315,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
 
     double oldP = double.tryParse(_oldPriceController.text) ?? 0;
     double newP = double.tryParse(_newPriceController.text) ?? 0;
+    double discountVal = double.tryParse(_percentController.text) ?? 0;
     
     if (newP >= oldP) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("price_error_higher".tr()), backgroundColor: Colors.orange));
@@ -322,10 +327,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     }
 
     final dealData = {
-      'discount': _percentController.text,
-      'product': _productController.text,
-      'oldPrice': _oldPriceController.text,
-      'newPrice': _newPriceController.text,
+      'discount': discountVal, 
+      'product': _productController.text.trim(),
+      'oldPrice': oldP, 
+      'newPrice': newP, 
       'category': _selectedDealCategory,
       'storeName': storeName,
       'storeId': user.uid,
@@ -333,19 +338,32 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       'lng': storeLng ?? 35.9106,
       'expiryTime': Timestamp.fromDate(_selectedExpiry),
       'createdAt': FieldValue.serverTimestamp(),
+      'clicks': 0, 
+      'favoritesCount': 0,
     };
 
-    if (_editingDealId != null) {
-      await FirebaseFirestore.instance.collection('deals').doc(_editingDealId).update(dealData);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr())));
-    } else {
-      await FirebaseFirestore.instance.collection('deals').add(dealData);
-      _notifyFollowers(user.uid, storeName ?? "Store", _productController.text, _percentController.text);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr())));
+    try {
+      if (_editingDealId != null) {
+        await FirebaseFirestore.instance.collection('deals').doc(_editingDealId).update({
+          'discount': discountVal,
+          'product': _productController.text.trim(),
+          'oldPrice': oldP,
+          'newPrice': newP,
+          'category': _selectedDealCategory,
+          'expiryTime': Timestamp.fromDate(_selectedExpiry),
+        });
+      } else {
+        await FirebaseFirestore.instance.collection('deals').add(dealData);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("discount_published_success".tr()), backgroundColor: Colors.green));
+        _cancelEdit();
+        _tabController.animateTo(1);
+      }
+    } catch (e) {
+      _showError(e.toString());
     }
-
-    _cancelEdit();
-    _tabController.animateTo(1);
   }
 
   void _cancelEdit() {
@@ -363,22 +381,32 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
 
   void _deleteDeal(String id) async { 
     await FirebaseFirestore.instance.collection('deals').doc(id).delete(); 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("cancel_edit".tr())));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("cancel_edit".tr())));
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: dropRed, size: 20), onPressed: () => Navigator.pop(context)),
-        title: Text(_editingDealId == null ? "store_dashboard".tr() : "edit_deal_title".tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        leading: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : dropRed, size: 20), onPressed: () => Navigator.pop(context)),
+        title: Text(_editingDealId == null ? "store_dashboard".tr() : "edit_deal_title".tr(), style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart_rounded, color: Colors.blue, size: 28),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreAnalyticsScreen()));
+            },
+          ),
+          const SizedBox(width: 10),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: dropRed,
@@ -403,6 +431,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Widget _buildCreateTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(30),
       child: Column(
@@ -414,16 +443,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           const SizedBox(height: 40),
 
           if (_storeCategories.length > 1) ...[
-            Text("primary_cat_label".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text("primary_cat_label".tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 10,
               children: _storeCategories.map((cat) {
                 bool isSelected = _selectedDealCategory == cat;
                 return ChoiceChip(
-                  label: Text(cat.tr(), style: TextStyle(color: isSelected ? Colors.white : Colors.black87)),
+                  label: Text(cat.tr(), style: TextStyle(color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87))),
                   selected: isSelected,
                   selectedColor: dropRed,
+                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200],
                   onSelected: (selected) => setState(() => _selectedDealCategory = selected ? cat : null),
                 );
               }).toList(),
@@ -431,12 +461,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           ] else if (_storeCategories.length == 1) ...[
             Container(
               padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(color: dropRed.withOpacity(0.05), borderRadius: BorderRadius.circular(15)),
+              decoration: BoxDecoration(color: dropRed.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(15)),
               child: Row(
                 children: [
                   const Icon(Icons.info_outline, color: dropRed, size: 20),
                   const SizedBox(width: 10),
-                  Text("${"primary_cat_label".tr()}: ", style: const TextStyle(fontSize: 13)),
+                  Text("${"primary_cat_label".tr()}: ", style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black)),
                   Text(_storeCategories.first.tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: dropRed)),
                 ],
               ),
@@ -481,7 +511,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
           ),
           
           const SizedBox(height: 25),
-          Text("deal_duration_label".tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text("deal_duration_label".tr(), style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
           const SizedBox(height: 10),
           _buildDurationPicker(),
 
@@ -506,21 +536,26 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Widget _buildDurationPicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     String formattedDate = DateFormat('yyyy/MM/dd - HH:mm').format(_selectedExpiry);
     return GestureDetector(
       onTap: _pickExpiry,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, 
+          borderRadius: BorderRadius.circular(15), 
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200)
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("expiry_time_label".tr(), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text("expiry_time_label", style: TextStyle(color: Colors.grey, fontSize: 12)).tr(),
                 const SizedBox(height: 4),
-                Text(formattedDate, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(formattedDate, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
               ],
             ),
             const Icon(Icons.alarm_on_rounded, color: dropRed, size: 28),
@@ -538,7 +573,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: dropRed));
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty) return Center(child: Text("no_deals_yet".tr()));
+        if (docs.isEmpty) return Center(child: Text("no_deals_yet".tr(), style: const TextStyle(color: Colors.grey)));
         return ListView.builder(
           padding: const EdgeInsets.all(20),
           itemCount: docs.length,
@@ -549,12 +584,16 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
             int remainingHours = expiry != null ? expiry.difference(DateTime.now()).inHours : 0;
 
             return Card(
+              color: Theme.of(context).cardColor,
               margin: const EdgeInsets.only(bottom: 15),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               child: ListTile(
-                leading: CircleAvatar(backgroundColor: dropRed.withOpacity(0.1), child: Icon(_getDealIcon(data['category']), color: dropRed, size: 20)),
+                leading: CircleAvatar(backgroundColor: dropRed.withValues(alpha: 0.1), child: Icon(_getDealIcon(data['category']), color: dropRed, size: 20)),
                 title: Text(data['product'] ?? ""),
-                subtitle: Text("${data['discount']}% ${"off_text".tr()} • ${data['newPrice'] ?? ""} ${"jod_currency".tr()} • ${remainingHours > 0 ? remainingHours : 0}${"hours_short".tr()} left"),
+                subtitle: Text(
+                  "${data['discount']}% ${"off_text".tr()} • ${data['newPrice'] ?? ""} ${"jod_currency".tr()} • ${remainingHours > 0 ? remainingHours : 0}${"hours_short".tr()} left",
+                  style: const TextStyle(color: Colors.grey),
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -571,42 +610,74 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Widget _buildSubscriptionTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     int daysLeft = subscriptionExpiry != null ? subscriptionExpiry!.difference(DateTime.now()).inDays : 0;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(25),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildStatusCard(daysLeft),
+          const SizedBox(height: 30),
+          
+          // About Store Section
+          Text("about_store_label".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: dropRed)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, 
+              borderRadius: BorderRadius.circular(15), 
+              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200)
+            ),
+            child: TextField(
+              controller: _aboutController,
+              maxLines: 4,
+              maxLength: 200,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                hintText: "about_store_hint".tr(),
+                hintStyle: const TextStyle(color: Colors.grey),
+                border: InputBorder.none,
+                counterText: "",
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              onPressed: _isSavingAbout ? null : _saveAboutStore,
+              child: _isSavingAbout ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text("save_changes".tr(), style: const TextStyle(color: Colors.white)),
+            ),
+          ),
+          
           const SizedBox(height: 30),
           _buildLocationUpdateSection(),
           const SizedBox(height: 30),
           _buildRenewalSection(),
           const SizedBox(height: 20),
-          
-          TextButton.icon(
-            onPressed: _resetLocationCooldown,
-            icon: const Icon(Icons.refresh_rounded, color: Colors.orange, size: 16),
-            label: const Text("DEBUG: Reset 30-day Cooldown", style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildStatusCard(int daysLeft) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15)],
       ),
       child: Column(
         children: [
           Icon(Icons.stars_rounded, size: 80, color: daysLeft > 5 ? Colors.green : Colors.orange),
           const SizedBox(height: 15),
-          Text("subscription_status".tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text("subscription_status".tr(), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
           const SizedBox(height: 5),
           Text("${"days_left".tr()}: $daysLeft", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: daysLeft > 5 ? Colors.green : Colors.red)),
         ],
@@ -615,6 +686,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Widget _buildLocationUpdateSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool canUpdate = true;
     String nextUpdate = "";
     if (lastLocationUpdate != null) {
@@ -628,26 +700,26 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("change_location".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: dropRed)),
           const SizedBox(height: 8),
           Text(canUpdate ? "location_change_limit".tr() : "${"location_change_limit".tr()} ${"next_change_available".tr(args: [nextUpdate])}", 
-            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+            style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.54) : Colors.grey[600], fontSize: 12)),
           const SizedBox(height: 15),
           SizedBox(
             width: double.infinity,
             height: 50,
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: canUpdate ? dropRed : Colors.grey),
+                side: BorderSide(color: canUpdate ? dropRed : (isDark ? Colors.white.withValues(alpha: 0.24) : Colors.grey)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: canUpdate && !_isUpdatingLocation ? _updateLocation : null,
               icon: _isUpdatingLocation ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: dropRed)) : const Icon(Icons.my_location_rounded, color: dropRed),
-              label: Text("get_my_location".tr(), style: TextStyle(color: canUpdate ? dropRed : Colors.grey)),
+              label: Text("get_my_location".tr(), style: TextStyle(color: canUpdate ? dropRed : (isDark ? Colors.white.withValues(alpha: 0.24) : Colors.grey))),
             ),
           ),
         ],
@@ -658,7 +730,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   Widget _buildRenewalSection() {
     return Column(
       children: [
-        _buildRenewalOption("renew_monthly".tr(), Icons.calendar_today_rounded, dropRed.withOpacity(0.8), () => _processPayment(30, 5.0)),
+        _buildRenewalOption("renew_monthly".tr(), Icons.calendar_today_rounded, dropRed.withValues(alpha: 0.8), () => _processPayment(30, 5.0)),
         const SizedBox(height: 12),
         _buildRenewalOption("upgrade_yearly".tr(), Icons.auto_awesome_rounded, goldColor, () => _processPayment(365, 50.0)),
       ],
@@ -673,7 +745,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
         decoration: BoxDecoration(
           color: color, 
           borderRadius: BorderRadius.circular(18), 
-          boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))]
         ),
         child: Row(
           children: [
@@ -681,7 +753,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
             const SizedBox(width: 15),
             Text(title, style: TextStyle(color: color == goldColor ? Colors.black87 : Colors.white, fontWeight: FontWeight.bold)),
             const Spacer(),
-            Icon(Icons.arrow_forward_ios_rounded, color: color == goldColor ? Colors.black54 : Colors.white70, size: 14),
+            Icon(Icons.arrow_forward_ios_rounded, color: color == goldColor ? Colors.black.withValues(alpha: 0.54) : Colors.white.withValues(alpha: 0.7), size: 14),
           ],
         ),
       ),
@@ -690,26 +762,25 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
 
   Widget _buildPreviewCard() {
     String oldP = _oldPriceController.text;
-    String newP = _newPriceController.text;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(color: dropRed, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: dropRed.withOpacity(0.2), blurRadius: 15)]),
+      decoration: BoxDecoration(color: dropRed, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: dropRed.withValues(alpha: 0.2), blurRadius: 15)]),
       child: Column(
         children: [
           Icon(_getDealIcon(_selectedDealCategory), color: Colors.white, size: 40),
           const SizedBox(height: 15),
           Text("${_percentController.text}% ${"off_text".tr()}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
-          Text(productName.isEmpty ? "product_name_placeholder".tr() : productName, style: const TextStyle(color: Colors.white70)),
-          if (oldP.isNotEmpty || newP.isNotEmpty)
+          Text(productName.isEmpty ? "product_name_placeholder".tr() : productName, style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+          if (oldP.isNotEmpty || _newPriceController.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (oldP.isNotEmpty) Text("$oldP ${"jod_currency".tr()}", style: const TextStyle(color: Colors.white60, decoration: TextDecoration.lineThrough, fontSize: 16)),
+                  if (oldP.isNotEmpty) Text("$oldP ${"jod_currency".tr()}", style: TextStyle(color: Colors.white.withValues(alpha: 0.6), decoration: TextDecoration.lineThrough, fontSize: 16)),
                   const SizedBox(width: 10),
-                  if (newP.isNotEmpty) Text("$newP ${"jod_currency".tr()}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+                  if (_newPriceController.text.isNotEmpty) Text("${_newPriceController.text} ${"jod_currency".tr()}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
                 ],
               ),
             ),
@@ -728,21 +799,23 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   Widget _buildStoreInput(TextEditingController controller, String hint, Function(String) onChanged, {bool isNumber = false, int? limit, bool readOnly = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: readOnly ? Colors.grey[100] : Colors.white, 
+        color: readOnly ? (isDark ? Colors.white.withValues(alpha: 0.12) : Colors.grey[100]) : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white), 
         borderRadius: BorderRadius.circular(15), 
-        border: Border.all(color: readOnly ? Colors.transparent : Colors.grey.shade200)
+        border: Border.all(color: readOnly ? Colors.transparent : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200))
       ),
       child: TextField(
         controller: controller, 
         onChanged: onChanged, 
         maxLength: limit,
         readOnly: readOnly,
+        style: TextStyle(color: isDark ? Colors.white : Colors.black),
         inputFormatters: isNumber ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))] : null,
         keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text, 
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none, counterText: ""),
+        decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Colors.grey), border: InputBorder.none, counterText: ""),
       ),
     );
   }
