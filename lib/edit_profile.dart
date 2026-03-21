@@ -1,7 +1,11 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -15,6 +19,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   bool _isLoading = false;
   static const Color dropRed = Color(0xFFFF1111);
+  
+  File? _imageFile;
+  String? _photoUrl;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -23,39 +31,90 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
-    var doc = await FirebaseFirestore.instance.collection('users').doc(user?.uid).get();
-    if (doc.exists) {
-      setState(() {
-        _nameController.text = doc.get('name') ?? "";
-      });
+    if (user == null) return;
+    setState(() => _isLoading = true);
+    try {
+      var doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        setState(() {
+          _nameController.text = data?['name'] ?? "";
+          _photoUrl = data?['photoUrl'];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery, 
+        imageQuality: 50,
+        maxWidth: 512, // تصغير الحجم لتسريع الرفع وتجنب الأخطاء
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      debugPrint("Picker Error: $e");
+    }
+  }
+
+  // استخدام putData بدلاً من putFile لحل مشاكل مسارات أندرويد
+  Future<String> _uploadImage(File image) async {
+    final String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
+    final String fileName = '${user!.uid}_$timeStamp.jpg';
+    final storageRef = FirebaseStorage.instance.ref().child('profile_pics').child(fileName);
+    
+    // تحويل الملف إلى Bytes
+    Uint8List imageData = await image.readAsBytes();
+    
+    // الرفع مع تحديد نوع المحتوى
+    UploadTask uploadTask = storageRef.putData(
+      imageData,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    
+    // انتظار اكتمال الرفع تماماً
+    TaskSnapshot snapshot = await uploadTask;
+    
+    // جلب الرابط بعد التأكد من وجود الملف
+    String downloadUrl = await snapshot.ref.getDownloadURL();
+    return downloadUrl;
+  }
+
   Future<void> _updateProfile() async {
-    if (_nameController.text.isEmpty || user == null) return;
+    if (_nameController.text.trim().isEmpty || user == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final newName = _nameController.text.trim();
+      String? finalPhotoUrl = _photoUrl;
+
+      if (_imageFile != null) {
+        // سيقوم الكود الآن بالانتظار حتى انتهاء الرفع الفعلي
+        finalPhotoUrl = await _uploadImage(_imageFile!);
+      }
       
-      // 1. تحديث اسم المستخدم في مجموعة users
-      await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+      final newName = _nameController.text.trim();
+
+      // حفظ البيانات في Firestore
+      await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
         'name': newName,
-      });
+        'photoUrl': finalPhotoUrl,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
-      // 2. تحديث اسم المتجر في جميع العروض (deals) الخاصة بهذا المستخدم
-      final dealsQuery = await FirebaseFirestore.instance
-          .collection('deals')
-          .where('storeId', isEqualTo: user!.uid)
-          .get();
-
-      if (dealsQuery.docs.isNotEmpty) {
-        WriteBatch batch = FirebaseFirestore.instance.batch();
-        for (var doc in dealsQuery.docs) {
-          batch.update(doc.reference, {'storeName': newName});
-        }
-        await batch.commit();
+      // تحديث Auth
+      await user!.updateDisplayName(newName);
+      if (finalPhotoUrl != null) {
+        await user!.updatePhotoURL(finalPhotoUrl);
       }
 
       if (!mounted) return;
@@ -64,11 +123,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("error_occurred".tr() + ": $e"), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        // إظهار الخطأ بشكل أوضح للمساعدة في التتبع
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("خطأ في الحفظ"),
+            content: Text(e.toString()),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("حسناً"))],
+          ),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -76,138 +143,67 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          "edit_profile_title".tr(),
-          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
-        ),
-      ),
-      body: SafeArea(
-        child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: dropRed))
-          : SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  _buildModernLogo(),
-                  const SizedBox(height: 40),
-                  
-                  _buildInputField(context, "full_name_label".tr(), Icons.person_outline_rounded, _nameController),
-                  
-                  const SizedBox(height: 20),
-                  
-                  _buildReadOnlyField(context, "email_address_label".tr(), Icons.mail_outline_rounded, user?.email ?? ""),
-                  
-                  const SizedBox(height: 50),
-                  _buildSaveButton(),
-                  const SizedBox(height: 20),
-                ],
-              ),
+      appBar: AppBar(elevation: 0, centerTitle: true, title: Text("edit_profile_title".tr())),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: dropRed))
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(25),
+            child: Column(
+              children: [
+                _buildProfileImagePicker(),
+                const SizedBox(height: 40),
+                _buildInputField(context, "full_name_label".tr(), Icons.person_outline_rounded, _nameController),
+                const SizedBox(height: 50),
+                _buildSaveButton(),
+              ],
             ),
-      ),
+          ),
     );
   }
 
-  Widget _buildModernLogo() {
+  Widget _buildProfileImagePicker() {
     return Center(
-      child: Stack(
-        children: [
-          Container(
-            width: 110,
-            height: 110,
-            decoration: BoxDecoration(
-              color: dropRed,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(color: dropRed.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
-              ],
+      child: GestureDetector(
+        onTap: _pickImage,
+        child: Stack(
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(40),
+                border: Border.all(color: dropRed, width: 2),
+                image: _imageFile != null 
+                    ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover)
+                    : (_photoUrl != null && _photoUrl!.isNotEmpty
+                        ? DecorationImage(image: NetworkImage(_photoUrl!), fit: BoxFit.cover)
+                        : null),
+              ),
+              child: (_imageFile == null && (_photoUrl == null || _photoUrl!.isEmpty))
+                  ? const Icon(Icons.person, size: 60, color: dropRed)
+                  : null,
             ),
-            child: const Center(
-              child: Text("%", style: TextStyle(color: Colors.white, fontSize: 50, fontWeight: FontWeight.w900)),
-            ),
-          ),
-        ],
+            const Positioned(bottom: 0, right: 0, child: CircleAvatar(radius: 18, backgroundColor: dropRed, child: Icon(Icons.camera_alt, color: Colors.white, size: 18))),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildInputField(BuildContext context, String label, IconData icon, TextEditingController controller) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-        const SizedBox(height: 10),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
-          ),
-          child: TextField(
-            controller: controller,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: dropRed, size: 22),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 18),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReadOnlyField(BuildContext context, String label, IconData icon, String value) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isDark ? Colors.grey[500] : Colors.black45)),
-        const SizedBox(height: 10),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 15),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[100],
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.grey, size: 22),
-              const SizedBox(width: 12),
-              Text(value, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-      ],
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 10),
+      TextField(controller: controller, decoration: InputDecoration(prefixIcon: Icon(icon, color: dropRed), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)))),
+    ]);
   }
 
   Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 60,
-      child: ElevatedButton(
-        onPressed: _updateProfile,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: dropRed,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          elevation: 0,
-        ),
-        child: Text(
-          "save_changes_button".tr(),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
-        ),
-      ),
-    );
+    return SizedBox(width: double.infinity, height: 55, child: ElevatedButton(
+      onPressed: _updateProfile,
+      style: ElevatedButton.styleFrom(backgroundColor: dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+      child: Text("save_changes_button".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    ));
   }
 }

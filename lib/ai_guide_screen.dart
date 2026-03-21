@@ -21,15 +21,19 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
   bool _isTyping = false;
 
   static const Color dropRed = Color(0xFFFF1111);
-  late final GenerativeModel _model;
+  late GenerativeModel _model;
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
+    _initModel();
+  }
+
+  void _initModel() {
     _model = GenerativeModel(
       model: 'gemini-1.5-flash',
-      apiKey: 'AIzaSyBPDzMixexTwMF7UYX_clJjSmTkCRoWodQ',
+      apiKey: 'AIzaSyDiRLy_nojY1ZrqusBTbJynun-oGahQIR0',
     );
   }
 
@@ -54,20 +58,21 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
   }
 
   Future<void> _sendImageMessage(Uint8List imageBytes) async {
+    if (currentUser == null) return;
     setState(() => _isTyping = true);
 
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(currentUser!.uid)
-        .collection('messages')
-        .add({
-      'text': "📸 [Analyzing Image...]",
-      'sender': 'user',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
     try {
-      final prompt = TextPart("ai_prompt_prefix".tr() + " " + "Analyze this image and find if there are any related deals or stores in our Drop app. ONLY respond if it relates to shopping, prices, or Jordan deals.");
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(currentUser!.uid)
+          .collection('messages')
+          .add({
+        'text': "📸 [Analyzing Image...]",
+        'sender': 'user',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      final prompt = TextPart("Analyze this image for Jordan shopping deals.");
       final imagePart = DataPart('image/jpeg', imageBytes);
       
       final response = await _model.generateContent([
@@ -76,9 +81,11 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
 
       if (response.text != null) {
         await _saveAiResponse(response.text!);
+      } else {
+        await _saveAiResponse("ai_fallback_response".tr());
       }
     } catch (e) {
-      _saveAiResponse("Sorry, I couldn't analyze the image right now.");
+      _handleAiError(e);
     } finally {
       if (mounted) setState(() => _isTyping = false);
     }
@@ -90,44 +97,56 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
     final userMessage = text.trim();
     _messageController.clear();
 
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(currentUser!.uid)
-        .collection('messages')
-        .add({
-      'text': userMessage,
-      'sender': 'user',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
     setState(() => _isTyping = true);
 
     try {
-      final systemStrictPrompt = "IMPORTANT: You are the 'Drop App' assistant. You MUST NOT answer any questions unrelated to shopping, deals, discounts, store locations in Jordan, or app features. If the user asks something else (like math, history, coding), politely refuse and say you only help with deals. User Question: ";
-      
-      final content = [Content.text(systemStrictPrompt + userMessage)];
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(currentUser!.uid)
+          .collection('messages')
+          .add({
+        'text': userMessage,
+        'sender': 'user',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      final content = [Content.text(userMessage)];
       final response = await _model.generateContent(content);
 
       if (response.text != null) {
         await _saveAiResponse(response.text!);
+      } else {
+        await _saveAiResponse("ai_fallback_response".tr());
       }
     } catch (e) {
-      _saveAiResponse("Error connecting to server. Please try again.");
+      _handleAiError(e);
     } finally {
       if (mounted) setState(() => _isTyping = false);
     }
   }
 
+  void _handleAiError(Object e) {
+    debugPrint("AI RAW ERROR: $e");
+    // إظهار الخطأ الخام لمساعدتنا في التشخيص الدقيق
+    String rawError = e.toString();
+    _saveAiResponse("Google Response: $rawError");
+  }
+
   Future<void> _saveAiResponse(String text) async {
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(currentUser!.uid)
-        .collection('messages')
-        .add({
-      'text': text,
-      'sender': 'ai',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+    if (currentUser == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(currentUser!.uid)
+          .collection('messages')
+          .add({
+        'text': text,
+        'sender': 'ai',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint("Firestore Save Error: $e");
+    }
   }
 
   void _showPremiumRequiredDialog() {
@@ -163,7 +182,9 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
+      stream: currentUser != null 
+        ? FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).snapshots()
+        : const Stream.empty(),
       builder: (context, userSnapshot) {
         bool isPremium = false;
         if (userSnapshot.hasData && userSnapshot.data!.exists) {
@@ -194,14 +215,20 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
           body: Column(
             children: [
               Expanded(
-                child: StreamBuilder<QuerySnapshot>(
+                child: currentUser == null 
+                ? const Center(child: Text("Please login to use AI Chat"))
+                : StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('chats')
-                      .doc(currentUser?.uid)
+                      .doc(currentUser!.uid)
                       .collection('messages')
                       .orderBy('timestamp', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      debugPrint("Firestore Stream Error: ${snapshot.error}");
+                      return Center(child: Text("Check your internet or Firebase Rules"));
+                    }
                     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: dropRed));
                     final docs = snapshot.data!.docs;
                     

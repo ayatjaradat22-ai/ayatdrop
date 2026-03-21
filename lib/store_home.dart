@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:geolocator/geolocator.dart';
 import 'checkout_screen.dart';
 import 'store_analytics_screen.dart';
+import 'qr_scanner_screen.dart';
 import 'app_colors.dart';
 
 class StoreHomeScreen extends StatefulWidget {
@@ -399,6 +400,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
         leading: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : dropRed, size: 20), onPressed: () => Navigator.pop(context)),
         title: Text(_editingDealId == null ? "store_dashboard".tr() : "edit_deal_title".tr(), style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: dropRed, size: 28),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const QrScannerScreen()));
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded, color: Colors.blue, size: 28),
             onPressed: () {

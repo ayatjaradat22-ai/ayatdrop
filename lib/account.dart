@@ -22,12 +22,13 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  final user = FirebaseAuth.instance.currentUser;
   static const Color dropRed = Color(0xFFFF1111);
   static const Color goldColor = Color(0xFFFFD700);
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.light ? const Color(0xFFF8F9FA) : Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -40,14 +41,20 @@ class _AccountScreenState extends State<AccountScreen> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
         builder: (context, snapshot) {
-          String name = "loading".tr();
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: dropRed));
+          }
+
+          String name = "no_name".tr();
           String email = user?.email ?? "no_email".tr();
           String role = "user";
+          String? photoUrl;
 
           if (snapshot.hasData && snapshot.data!.exists) {
             var data = snapshot.data!.data() as Map<String, dynamic>;
-            name = data['name'] ?? "no_name".tr();
+            name = data['name'] ?? data['storeName'] ?? "no_name".tr();
             role = data['role'] ?? "user";
+            photoUrl = data['photoUrl'];
           }
 
           return SingleChildScrollView(
@@ -55,16 +62,9 @@ class _AccountScreenState extends State<AccountScreen> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                Text("my_account_title".tr(), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 25),
-
-                _buildInfoCard("name_label".tr(), name, Icons.edit_outlined, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
-                }),
-
-                _buildInfoCard("email_label".tr(), email, Icons.email_outlined, null),
-
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
+                _buildProfileHeader(photoUrl, name, email),
+                const SizedBox(height: 30),
 
                 if (role == 'store')
                   _buildSpecialDashboardCard(
@@ -85,7 +85,11 @@ class _AccountScreenState extends State<AccountScreen> {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen())),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 25),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("preferences_section".tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                const SizedBox(height: 10),
 
                 _buildActionCard("saved_offers".tr(), Icons.favorite_rounded, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedStoresScreen()));
@@ -103,6 +107,12 @@ class _AccountScreenState extends State<AccountScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedAddressesScreen()));
                 }),
 
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("support_section".tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                const SizedBox(height: 10),
+
                 _buildActionCard("faq_title".tr(), Icons.help_outline, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const FAQScreen()));
                 }),
@@ -117,34 +127,70 @@ class _AccountScreenState extends State<AccountScreen> {
 
                 const SizedBox(height: 40),
 
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: ElevatedButton(
-                        onPressed: () {
-                           Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: dropRed,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                        ),
-                        child: Text("edit_profile_title".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _logout(),
+                    icon: const Icon(Icons.logout_rounded, color: Colors.red),
+                    label: Text("logout_button".tr(), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     ),
-                    const SizedBox(width: 20),
-                    TextButton(
-                      onPressed: () => _logout(),
-                      child: Text("logout_button".tr(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
+                  ),
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           );
         }
       ),
+    );
+  }
+
+  Widget _buildProfileHeader(String? photoUrl, String name, String email) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen())),
+          child: Stack(
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: dropRed, width: 2),
+                  image: photoUrl != null && photoUrl.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(photoUrl), 
+                        fit: BoxFit.cover,
+                      ) 
+                    : null,
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+                ),
+                child: (photoUrl == null || photoUrl.isEmpty)
+                  ? const Icon(Icons.person, color: dropRed, size: 50) 
+                  : null,
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(color: dropRed, shape: BoxShape.circle),
+                  child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 15),
+        Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(email, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+      ],
     );
   }
 
@@ -209,32 +255,6 @@ class _AccountScreenState extends State<AccountScreen> {
             child: Text("logout_button".tr(), style: const TextStyle(color: Colors.red)),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(String label, String value, IconData icon, VoidCallback? onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              const SizedBox(height: 5),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ]),
-            if (onTap != null) Icon(icon, color: Colors.grey, size: 20),
-          ],
-        ),
       ),
     );
   }

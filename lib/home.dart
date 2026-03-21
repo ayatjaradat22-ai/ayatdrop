@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:convert';
 import 'map.dart';
 import 'ai_guide_screen.dart';
 import 'account.dart';
@@ -18,6 +20,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'premium.dart';
 import 'app_colors.dart';
 import 'store_profile_screen.dart';
+import 'edit_profile.dart';
 
 class MainWrapper extends StatefulWidget {
   final int initialIndex;
@@ -75,7 +78,47 @@ class MainWrapperState extends State<MainWrapper> {
           BottomNavigationBarItem(icon: const Icon(Icons.home_filled), label: "home_nav".tr()),
           BottomNavigationBarItem(icon: const Icon(Icons.map_rounded), label: "map_nav".tr()),
           BottomNavigationBarItem(icon: const Icon(Icons.auto_awesome_mosaic_rounded), label: "ai_nav".tr()),
-          BottomNavigationBarItem(icon: const Icon(Icons.person_rounded), label: "account_nav".tr()),
+          BottomNavigationBarItem(
+            icon: StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, authSnapshot) {
+                final uid = authSnapshot.data?.uid;
+                if (uid == null) return const Icon(Icons.person_rounded);
+                
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+                  builder: (context, snapshot) {
+                    String? photoUrl;
+                    if (snapshot.hasData && snapshot.data!.exists) {
+                      final data = snapshot.data!.data() as Map<String, dynamic>?;
+                      photoUrl = data?['photoUrl'];
+                    }
+                    return Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _selectedIndex == 3 ? AppColors.dropRed : Colors.grey.shade400,
+                          width: 1.5,
+                        ),
+                        image: (photoUrl != null && photoUrl.isNotEmpty) 
+                            ? DecorationImage(
+                                image: NetworkImage(photoUrl), 
+                                fit: BoxFit.cover,
+                              ) 
+                            : null,
+                      ),
+                      child: (photoUrl == null || photoUrl.isEmpty)
+                          ? Icon(Icons.person_rounded, size: 18, color: _selectedIndex == 3 ? AppColors.dropRed : Colors.grey.shade400) 
+                          : null,
+                    );
+                  }
+                );
+              }
+            ),
+            label: "account_nav".tr(),
+          ),
         ],
       ),
     );
@@ -165,7 +208,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               String name = "saver_default".tr();
               if (snapshot.hasData && snapshot.data!.exists) {
                 final data = snapshot.data!.data() as Map<String, dynamic>?;
-                name = data?['name'] ?? "saver_default".tr();
+                name = data?['name'] ?? data?['storeName'] ?? "saver_default".tr();
               }
               return Text("hello_user".tr(args: [name]), style: const TextStyle(color: Colors.white70, fontSize: 16));
             },
@@ -232,7 +275,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('deals').orderBy('createdAt', descending: true).snapshots(),
           builder: (context, snapshot) {
-            if (snapshot.hasError) return Center(child: Text("error_occurred".tr()));
+            if (snapshot.hasError) {
+              debugPrint("Firestore Error: ${snapshot.error}");
+              return Center(child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text("error_occurred".tr() + "\n(تأكد من اتصال الإنترنت وقواعد الفايربيس)", textAlign: TextAlign.center),
+              ));
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator(color: AppColors.dropRed));
             }
@@ -662,6 +711,23 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 height: 55,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    _showQRConfirmation(doc.id, data);
+                  },
+                  icon: const Icon(Icons.qr_code_2_rounded, color: Colors.white),
+                  label: const Text("تأكيد الخصم عبر الكود", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     elevation: 0,
@@ -717,6 +783,55 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showQRConfirmation(String dealId, Map<String, dynamic> data) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    double oldPrice = double.tryParse(data['oldPrice']?.toString() ?? "0") ?? 0;
+    double newPrice = double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
+    double savedAmount = oldPrice - newPrice;
+
+    Map<String, dynamic> qrData = {
+      'u': user.uid,
+      'd': dealId,
+      's': savedAmount,
+      't': DateTime.now().millisecondsSinceEpoch,
+    };
+
+    String qrString = jsonEncode(qrData);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("تأكيد الخصم", textAlign: TextAlign.center),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("اجعل صاحب المتجر يمسح هذا الكود لتأكيد الخصم وتوثيق توفيرك", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey)),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 200,
+              height: 200,
+              child: QrImageView(
+                data: qrString,
+                version: QrVersions.auto,
+                size: 200.0,
+                foregroundColor: AppColors.dropRed,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text("${savedAmount.toStringAsFixed(3)} JOD", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
+            const Text("مبلغ التوفير المتوقع", style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إغلاق")),
+        ],
       ),
     );
   }
