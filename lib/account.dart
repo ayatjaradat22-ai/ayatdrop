@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,13 +7,13 @@ import 'setting.dart';
 import 'order_history.dart';
 import 'payment_methods.dart';
 import 'edit_profile.dart';
-import 'drop.dart';
 import 'saved_addresses.dart';
 import 'FAQ.dart';
 import 'contactus.dart';
 import 'saved_stores.dart';
 import 'premium.dart';
 import 'store_home.dart';
+import 'store_login.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -150,6 +151,20 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Widget _buildProfileHeader(String? photoUrl, String name, String email) {
+    ImageProvider? imageProvider;
+    
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      if (photoUrl.startsWith('http')) {
+        imageProvider = NetworkImage(photoUrl);
+      } else {
+        try {
+          imageProvider = MemoryImage(base64Decode(photoUrl));
+        } catch (e) {
+          imageProvider = null;
+        }
+      }
+    }
+
     return Column(
       children: [
         GestureDetector(
@@ -163,15 +178,12 @@ class _AccountScreenState extends State<AccountScreen> {
                   color: Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(color: dropRed, width: 2),
-                  image: photoUrl != null && photoUrl.isNotEmpty
-                    ? DecorationImage(
-                        image: NetworkImage(photoUrl), 
-                        fit: BoxFit.cover,
-                      ) 
+                  image: imageProvider != null 
+                    ? DecorationImage(image: imageProvider, fit: BoxFit.cover) 
                     : null,
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
                 ),
-                child: (photoUrl == null || photoUrl.isEmpty)
+                child: (imageProvider == null)
                   ? const Icon(Icons.person, color: dropRed, size: 50) 
                   : null,
               ),
@@ -248,7 +260,7 @@ class _AccountScreenState extends State<AccountScreen> {
               await FirebaseAuth.instance.signOut();
               if (!mounted) return;
               Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                MaterialPageRoute(builder: (context) => const StoreLoginScreen()),
                 (route) => false,
               );
             },

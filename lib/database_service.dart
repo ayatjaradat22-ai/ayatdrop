@@ -10,6 +10,8 @@ class DatabaseService {
       'uid': uid,
       'name': name,
       'email': email,
+      'photoUrl': '', // تهيئة الحقل لتجنب أخطاء null
+      'role': 'user', // تحديد الدور الافتراضي
       'isPremium': false,
       'totalSavings': 0.0,
       'createdAt': FieldValue.serverTimestamp(),
@@ -32,6 +34,8 @@ class DatabaseService {
       'location': location,
       'paymentMethod': paymentMethod,
       'email': email,
+      'photoUrl': '', // تهيئة الحقل للمتاجر أيضاً
+      'role': 'store',
       'isActive': true,
       'createdAt': FieldValue.serverTimestamp(),
     });

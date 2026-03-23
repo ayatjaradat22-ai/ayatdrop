@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -5,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -21,7 +21,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   static const Color dropRed = Color(0xFFFF1111);
   
   File? _imageFile;
-  String? _photoUrl;
+  String? _photoUrl; // سيحتوي على نص Base64 أو رابط قديم
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -53,8 +53,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final pickedFile = await _picker.pickImage(
         source: ImageSource.gallery, 
-        imageQuality: 50,
-        maxWidth: 512, // تصغير الحجم لتسريع الرفع وتجنب الأخطاء
+        imageQuality: 25, // جودة منخفضة لأن Firestore لا يقبل ملفات ضخمة
+        maxWidth: 300,   // تصغير العرض لتوفير المساحة
       );
       if (pickedFile != null) {
         setState(() {
@@ -66,27 +66,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // استخدام putData بدلاً من putFile لحل مشاكل مسارات أندرويد
-  Future<String> _uploadImage(File image) async {
-    final String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
-    final String fileName = '${user!.uid}_$timeStamp.jpg';
-    final storageRef = FirebaseStorage.instance.ref().child('profile_pics').child(fileName);
-    
-    // تحويل الملف إلى Bytes
-    Uint8List imageData = await image.readAsBytes();
-    
-    // الرفع مع تحديد نوع المحتوى
-    UploadTask uploadTask = storageRef.putData(
-      imageData,
-      SettableMetadata(contentType: 'image/jpeg'),
-    );
-    
-    // انتظار اكتمال الرفع تماماً
-    TaskSnapshot snapshot = await uploadTask;
-    
-    // جلب الرابط بعد التأكد من وجود الملف
-    String downloadUrl = await snapshot.ref.getDownloadURL();
-    return downloadUrl;
+  // تحويل الصورة إلى نص Base64 بدلاً من رفعها للستوريج
+  Future<String> _convertImageToBase64(File image) async {
+    Uint8List imageBytes = await image.readAsBytes();
+    return base64Encode(imageBytes);
   }
 
   Future<void> _updateProfile() async {
@@ -95,27 +78,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      String? finalPhotoUrl = _photoUrl;
+      String? finalPhotoData = _photoUrl;
 
       if (_imageFile != null) {
-        // سيقوم الكود الآن بالانتظار حتى انتهاء الرفع الفعلي
-        finalPhotoUrl = await _uploadImage(_imageFile!);
+        // بدلاً من الرفع، نحول الصورة لنص
+        finalPhotoData = await _convertImageToBase64(_imageFile!);
       }
       
       final newName = _nameController.text.trim();
 
-      // حفظ البيانات في Firestore
+      // حفظ النص في Firestore مباشرة
       await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
         'name': newName,
-        'photoUrl': finalPhotoUrl,
+        'photoUrl': finalPhotoData,
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      // تحديث Auth
+      // تحديث Auth (الاسم فقط، لأن الرابط النصي قد يكون طويلاً جداً لـ Auth)
       await user!.updateDisplayName(newName);
-      if (finalPhotoUrl != null) {
-        await user!.updatePhotoURL(finalPhotoUrl);
-      }
+      await user!.reload();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -124,12 +105,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        // إظهار الخطأ بشكل أوضح للمساعدة في التتبع
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text("خطأ في الحفظ"),
-            content: Text(e.toString()),
+            title: const Text("تنبيه"),
+            content: Text("حدث خطأ أثناء الحفظ، يرجى التأكد من حجم الصورة المحملة."),
             actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("حسناً"))],
           ),
         );
@@ -141,7 +121,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(elevation: 0, centerTitle: true, title: Text("edit_profile_title".tr())),
       body: _isLoading 
@@ -177,7 +156,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 image: _imageFile != null 
                     ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover)
                     : (_photoUrl != null && _photoUrl!.isNotEmpty
-                        ? DecorationImage(image: NetworkImage(_photoUrl!), fit: BoxFit.cover)
+                        ? DecorationImage(
+                            image: _photoUrl!.startsWith('http') 
+                                ? NetworkImage(_photoUrl!) 
+                                : MemoryImage(base64Decode(_photoUrl!)) as ImageProvider,
+                            fit: BoxFit.cover,
+                          )
                         : null),
               ),
               child: (_imageFile == null && (_photoUrl == null || _photoUrl!.isEmpty))

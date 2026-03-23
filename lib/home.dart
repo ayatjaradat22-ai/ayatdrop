@@ -89,28 +89,40 @@ class MainWrapperState extends State<MainWrapper> {
                   stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
                   builder: (context, snapshot) {
                     String? photoUrl;
+                    ImageProvider? imageProvider;
+
                     if (snapshot.hasData && snapshot.data!.exists) {
                       final data = snapshot.data!.data() as Map<String, dynamic>?;
                       photoUrl = data?['photoUrl'];
+                      
+                      if (photoUrl != null && photoUrl.isNotEmpty) {
+                        if (photoUrl.startsWith('http')) {
+                          imageProvider = NetworkImage(photoUrl);
+                        } else {
+                          try {
+                            imageProvider = MemoryImage(base64Decode(photoUrl));
+                          } catch (e) {
+                            imageProvider = null;
+                          }
+                        }
+                      }
                     }
+
                     return Container(
-                      width: 26,
-                      height: 26,
+                      width: 28,
+                      height: 28,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: _selectedIndex == 3 ? AppColors.dropRed : Colors.grey.shade400,
                           width: 1.5,
                         ),
-                        image: (photoUrl != null && photoUrl.isNotEmpty) 
-                            ? DecorationImage(
-                                image: NetworkImage(photoUrl), 
-                                fit: BoxFit.cover,
-                              ) 
+                        image: imageProvider != null 
+                            ? DecorationImage(image: imageProvider, fit: BoxFit.cover) 
                             : null,
                       ),
-                      child: (photoUrl == null || photoUrl.isEmpty)
-                          ? Icon(Icons.person_rounded, size: 18, color: _selectedIndex == 3 ? AppColors.dropRed : Colors.grey.shade400) 
+                      child: imageProvider == null
+                          ? Icon(Icons.person_rounded, size: 20, color: _selectedIndex == 3 ? AppColors.dropRed : Colors.grey.shade400) 
                           : null,
                     );
                   }
@@ -276,10 +288,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           stream: FirebaseFirestore.instance.collection('deals').orderBy('createdAt', descending: true).snapshots(),
           builder: (context, snapshot) {
             if (snapshot.hasError) {
-              debugPrint("Firestore Error: ${snapshot.error}");
               return Center(child: Padding(
                 padding: const EdgeInsets.all(20.0),
-                child: Text("error_occurred".tr() + "\n(تأكد من اتصال الإنترنت وقواعد الفايربيس)", textAlign: TextAlign.center),
+                child: Text("error_occurred".tr(), textAlign: TextAlign.center),
               ));
             }
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -313,13 +324,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               bool matchesCategory = true;
               if (_selectedCategory != null) {
                 matchesCategory = (category == _selectedCategory);
-                if (!matchesCategory) {
-                  if (_selectedCategory == 'cat_cafes') {
-                    matchesCategory = productName.contains('قهوة') || productName.contains('coffee') || productName.contains('moca') || storeName.contains('كافيه');
-                  } else if (_selectedCategory == 'cat_food') {
-                    matchesCategory = productName.contains('اكل') || productName.contains('وجبة') || productName.contains('burger');
-                  }
-                }
               }
 
               bool matchesSearch = true;
@@ -475,113 +479,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     );
   }
 
-  Widget _buildLargeFollowButton(String storeId, String storeName) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const SizedBox();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
-      builder: (context, userSnapshot) {
-        bool isPremium = false;
-        if (userSnapshot.hasData && userSnapshot.data!.exists) {
-          final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
-          isPremium = userData?['isPremium'] ?? false;
-        }
-
-        return StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .collection('following_stores')
-              .doc(storeId)
-              .snapshots(),
-          builder: (context, snapshot) {
-            bool isFollowing = snapshot.hasData && snapshot.data!.exists;
-            return SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  if (!isPremium) {
-                    _showPremiumRequiredDialog();
-                  } else {
-                    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('following_stores').doc(storeId);
-                    if (isFollowing) {
-                      ref.delete();
-                    } else {
-                      ref.set({'storeName': storeName, 'followedAt': FieldValue.serverTimestamp()});
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isFollowing ? (isDark ? Colors.white12 : Colors.grey[200]) : AppColors.dropRed.withOpacity(0.1),
-                  foregroundColor: isFollowing ? (isDark ? Colors.white : Colors.black) : AppColors.dropRed,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-                icon: Icon(isFollowing ? Icons.check_circle : Icons.add_circle_outline, size: 20),
-                label: Text(
-                  isFollowing ? "following_label".tr() : "follow_label".tr(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            );
-          },
-        );
-      }
-    );
-  }
-
-  void _showPremiumRequiredDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("premium_feature".tr()),
-        content: Text("follow_store_premium_desc".tr()),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.dropRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));
-            },
-            child: Text("upgrade_now".tr(), style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData _getCategoryIcon(String? category, String productName) {
-    if (category == 'cat_food' || productName.toLowerCase().contains('burger')) return Icons.restaurant_rounded;
-    if (category == 'cat_cafes' || productName.toLowerCase().contains('moca')) return Icons.local_cafe_rounded;
-    if (category == 'cat_fashion') return Icons.shopping_bag_rounded;
-    if (category == 'cat_tech') return Icons.devices_rounded;
-    return Icons.local_offer_rounded;
-  }
-
-  Future<void> _openMaps(double lat, double lng) async {
-    final Uri geoUrl = Uri.parse("geo:$lat,$lng?q=$lat,$lng");
-    final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
-
-    try {
-      if (await canLaunchUrl(geoUrl)) {
-        await launchUrl(geoUrl);
-      } else if (await canLaunchUrl(googleMapsUrl)) {
-        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("error_occurred".tr() + ": $e"), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   void _showDealDetails(DocumentSnapshot doc) {
     final Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     final double lat = (data['lat'] as num?)?.toDouble() ?? 31.9539;
@@ -589,7 +486,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final wrapper = context.findAncestorStateOfType<MainWrapperState>();
 
-    // زيادة عدد النقرات
     FirebaseFirestore.instance.collection('deals').doc(doc.id).update({'clicks': FieldValue.increment(1)});
 
     double distanceKm = const Distance().as(
@@ -651,7 +547,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               ),
               const SizedBox(height: 20),
               
-              // نظام التقييم: هل العرض متوفر؟
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50], borderRadius: BorderRadius.circular(15)),
@@ -791,6 +686,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
+    if (expiry.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("عذراً، هذا العرض انتهت صلاحيته ولا يمكن استخدامه")));
+      return;
+    }
+
     double oldPrice = double.tryParse(data['oldPrice']?.toString() ?? "0") ?? 0;
     double newPrice = double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
     double savedAmount = oldPrice - newPrice;
@@ -848,7 +749,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     final voteDoc = await voteRef.get();
     if (voteDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("لقد قمت بالتصويت مسبقاً على هذا العرض")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لقد قمت بالتصويت مسبقاً على هذا العرض")));
       return;
     }
 
@@ -863,6 +764,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
+    if (expiry.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("هذا العرض انتهت صلاحيته ولا يمكن احتسابه")));
+      return;
+    }
+
     final boughtRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
@@ -871,7 +778,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     final boughtDoc = await boughtRef.get();
     if (boughtDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("هذا العرض محسوب مسبقاً في توفيرك")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("هذا العرض محسوب مسبقاً في توفيرك")));
       return;
     }
 
@@ -880,7 +787,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     double savedAmount = oldPrice - newPrice;
     if (savedAmount <= 0) return;
 
-    await boughtRef.set({'boughtAt': FieldValue.serverTimestamp(), 'saved': savedAmount});
+    await boughtRef.set({'boughtAt': FieldValue.serverTimestamp(), 'saved': savedAmount, 'confirmedByStore': false});
 
     final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
     await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -889,8 +796,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         final userData = userDoc.data() as Map<String, dynamic>?;
         double currentTotal = (userData?['totalSaved'] ?? 0).toDouble();
         transaction.update(userRef, {'totalSaved': currentTotal + savedAmount});
-      } else {
-        transaction.set(userRef, {'totalSaved': savedAmount}, SetOptions(merge: true));
       }
     });
 
@@ -1163,5 +1068,52 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         );
       }
     );
+  }
+
+  Widget _buildLargeFollowButton(String storeId, String storeName) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox();
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('following_stores').doc(storeId).snapshots(),
+      builder: (context, snapshot) {
+        bool isFollowing = snapshot.hasData && snapshot.data!.exists;
+        return SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              final ref = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('following_stores').doc(storeId);
+              if (isFollowing) {
+                ref.delete();
+              } else {
+                ref.set({'storeName': storeName, 'followedAt': FieldValue.serverTimestamp()});
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isFollowing ? Colors.grey[200] : AppColors.dropRed.withOpacity(0.1),
+              foregroundColor: isFollowing ? Colors.black : AppColors.dropRed,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            ),
+            icon: Icon(isFollowing ? Icons.check_circle : Icons.add_circle_outline, size: 20),
+            label: Text(isFollowing ? "following_label".tr() : "follow_label".tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _getCategoryIcon(String? category, String productName) {
+    if (category == 'cat_food' || productName.toLowerCase().contains('burger')) return Icons.restaurant_rounded;
+    if (category == 'cat_cafes') return Icons.local_cafe_rounded;
+    if (category == 'cat_fashion') return Icons.shopping_bag_rounded;
+    return Icons.local_offer_rounded;
+  }
+
+  Future<void> _openMaps(double lat, double lng) async {
+    final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
+    if (await canLaunchUrl(googleMapsUrl)) {
+      await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+    }
   }
 }

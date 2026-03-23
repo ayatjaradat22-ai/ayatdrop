@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'app_colors.dart';
 
@@ -14,9 +15,10 @@ class QrScannerScreen extends StatefulWidget {
 class _QrScannerScreenState extends State<QrScannerScreen> {
   bool _isProcessing = false;
   MobileScannerController cameraController = MobileScannerController();
+  final User? currentStore = FirebaseAuth.instance.currentUser;
 
   void _onDetect(BarcodeCapture capture) async {
-    if (_isProcessing) return;
+    if (_isProcessing || currentStore == null) return;
 
     final List<Barcode> barcodes = capture.barcodes;
     if (barcodes.isEmpty) return;
@@ -39,40 +41,72 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Future<void> _confirmDiscount(String userId, String dealId, double savedAmount) async {
-    final boughtRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('bought_deals')
-        .doc(dealId);
-
-    final boughtDoc = await boughtRef.get();
-    if (boughtDoc.exists) {
-      _showResultDialog("تنبيه", "هذا الخصم تم تأكيده مسبقاً لهذا المستخدم", Colors.orange);
-      return;
-    }
-
-    // تحديث توفير المستخدم وسجل المشتريات
-    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
-    
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      DocumentSnapshot userDoc = await transaction.get(userRef);
-      if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>?;
-        double currentTotal = (userData?['totalSaved'] ?? 0).toDouble();
-        transaction.update(userRef, {'totalSaved': currentTotal + savedAmount});
-      }
+    try {
+      // 1. التحقق من أن العرض يخص هذا المتجر فعلياً
+      final dealDoc = await FirebaseFirestore.instance.collection('deals').doc(dealId).get();
       
-      transaction.set(boughtRef, {
-        'boughtAt': FieldValue.serverTimestamp(),
-        'saved': savedAmount,
-        'confirmedByStore': true
-      });
-    });
+      if (!dealDoc.exists) {
+        _showResultDialog("خطأ", "هذا العرض لم يعد موجوداً في النظام", Colors.red);
+        return;
+      }
 
-    _showResultDialog("تم التأكيد", "تم تسجيل توفير بمبلغ ${savedAmount.toStringAsFixed(3)} JOD للمستخدم بنجاح", Colors.green);
+      final dealData = dealDoc.data() as Map<String, dynamic>;
+      if (dealData['storeId'] != currentStore!.uid) {
+        _showResultDialog("غير مصرح", "لا يمكنك تأكيد عرض لا ينتمي لمتجرك", Colors.red);
+        return;
+      }
+
+      // 2. التحقق مما إذا كان العرض قد انتهى
+      if (dealData['expiryTime'] != null) {
+        DateTime expiry = (dealData['expiryTime'] as Timestamp).toDate();
+        if (expiry.isBefore(DateTime.now())) {
+          _showResultDialog("تنبيه", "هذا العرض قد انتهت صلاحيته", Colors.orange);
+          return;
+        }
+      }
+
+      // 3. التحقق مما إذا كان قد تم تأكيده مسبقاً
+      final boughtRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('bought_deals')
+          .doc(dealId);
+
+      final boughtDoc = await boughtRef.get();
+      if (boughtDoc.exists && (boughtDoc.data()?['confirmedByStore'] ?? false)) {
+        _showResultDialog("تنبيه", "هذا الخصم تم تأكيده مسبقاً لهذا المستخدم", Colors.orange);
+        return;
+      }
+
+      // 4. تنفيذ العملية في Transaction لضمان الدقة
+      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot userSnapshot = await transaction.get(userRef);
+        
+        if (userSnapshot.exists) {
+          final userData = userSnapshot.data() as Map<String, dynamic>?;
+          double currentTotal = (userData?['totalSaved'] ?? 0).toDouble();
+          transaction.update(userRef, {'totalSaved': currentTotal + savedAmount});
+        }
+        
+        transaction.set(boughtRef, {
+          'boughtAt': FieldValue.serverTimestamp(),
+          'saved': savedAmount,
+          'confirmedByStore': true,
+          'storeId': currentStore!.uid,
+          'dealProduct': dealData['product']
+        }, SetOptions(merge: true));
+      });
+
+      _showResultDialog("تم التأكيد بنجاح", "تم تسجيل توفير بمبلغ ${savedAmount.toStringAsFixed(3)} JOD للمستخدم", Colors.green);
+    } catch (e) {
+      _showResultDialog("خطأ تقني", "حدث خطأ أثناء معالجة الطلب: $e", Colors.red);
+    }
   }
 
   void _showResultDialog(String title, String message, Color color) {
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -100,7 +134,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("ماسح التأكيد"),
+        title: const Text("ماسح التأكيد للمتاجر"),
         backgroundColor: AppColors.dropRed,
         foregroundColor: Colors.white,
       ),
@@ -110,7 +144,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             controller: cameraController,
             onDetect: _onDetect,
           ),
-          // إطار المسح
           Center(
             child: Container(
               width: 250,
@@ -131,9 +164,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             left: 0,
             right: 0,
             child: Center(
-              child: Text(
-                "وجه الكاميرا نحو كود العميل",
-                style: TextStyle(color: Colors.white, backgroundColor: Colors.black45, fontSize: 16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(10)),
+                child: const Text(
+                  "وجه الكاميرا نحو كود العميل لتأكيد الخصم",
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                ),
               ),
             ),
           )
