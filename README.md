@@ -1,36 +1,36 @@
 # 🔴 DROP - Your Smart Savings Companion in Jordan
 
-**Drop** is a cutting-edge Flutter application designed to bridge the gap between savvy shoppers and local merchants in Jordan. It leverages Artificial Intelligence and Location-Based Services to ensure users never miss a deal that fits their budget and proximity.
+**Drop** is a cutting-edge Flutter application designed to bridge the gap between savvy shoppers and local merchants in Jordan. It leverages Artificial Intelligence, Location-Based Services, and a highly customizable UI to ensure users save smarter every day.
 
 ---
 
 ## 🚀 Key Features
 
 ### 👤 For Savers (Users)
+- **Dynamic Theming Engine:** Choose from 5 beautiful themes (Light, Dark, Midnight Blue, Emerald Forest, and Purple Velvet). Custom branding ensures icons like "Favorites" stay recognizable in red while the UI adapts to your style. 🎨
 - **Real-time Follower Alerts:** Get instant notifications the second a store you follow publishes a new deal. 🔥
-- **Auto-Clean Feed:** The home screen and map automatically hide expired deals, keeping your experience fresh and relevant.
+- **Smart Savings Tracker:** Track how much you've saved with a built-in wallet summary. Includes a **Reset Savings** feature to restart your tracking daily or weekly. 💰
 - **Drop AI Assistant:** A smart, friendly AI guide (powered by Gemini 1.5 Flash) that helps you find the best deals using natural Jordanian dialect.
-- **Proximity-Based Discovery:** Explore deals on an interactive map or filter them by distance (from 0 to 20km).
-- **Smart Notifications:** Customize alerts based on your interests (Food, Fashion, Cafes, etc.) and your current location.
+- **Proximity-Based Discovery:** Explore deals on an interactive map or filter them by distance.
+- **Auto-Clean Feed:** Expired deals are automatically hidden, keeping the feed fresh and relevant.
 
 ### 🏪 For Merchants (Store Owners)
-- **Instant Reach:** Every deal you publish or update instantly triggers notifications to all your followers.
-- **Deal Lifecycle Management:** Publish deals with custom expiry times. Expired deals are hidden from users but kept in your dashboard for easy re-activation.
-- **Merchant Dashboard:** A professional suite to publish, edit, and track active discounts.
-- **Subscription Management:** Built-in system to track and renew store membership status with localized payment support.
+- **Instant Reach:** Every deal you publish instantly triggers notifications to all your followers.
+- **Merchant Dashboard:** A professional suite to publish, edit, and track active discounts and analytics.
+- **Deal Lifecycle Management:** Set expiry times for deals. Expired deals are archived for easy re-activation.
+- **Subscription System:** Built-in membership management with premium feature toggles.
 
 ---
 
 ## 🛠 Tech Stack
 
 - **Framework:** [Flutter](https://flutter.dev/) (Multi-platform UI)
-- **Backend:** [Firebase](https://firebase.google.com/)
-    - **Firestore:** Real-time NoSQL database for deals, users, and chats.
-    - **Authentication:** Secure Email/Password login.
-    - **Cloud Messaging (FCM):** For push notifications.
-- **Artificial Intelligence:** [Google Generative AI](https://ai.google.dev/) (Gemini 1.5 Flash Model).
-- **Maps:** [Flutter Map](https://pub.dev/packages/flutter_map) (OpenStreetMap based).
-- **Localization:** [Easy Localization](https://pub.dev/packages/easy_localization) (Full AR/EN support).
+- **State Management:** [Provider](https://pub.dev/packages/provider)
+- **Backend:** [Firebase](https://firebase.google.com/) (Firestore, Auth, Storage, FCM)
+- **Local Storage:** [Shared Preferences](https://pub.dev/packages/shared_preferences) (for theme persistence)
+- **Artificial Intelligence:** [Google Generative AI](https://ai.google.dev/) (Gemini 1.5 Flash Model)
+- **Maps:** [Flutter Map](https://pub.dev/packages/flutter_map) (OpenStreetMap based)
+- **Localization:** [Easy Localization](https://pub.dev/packages/easy_localization) (Full AR/EN support)
 
 ---
 
@@ -38,14 +38,14 @@
 
 ```text
 lib/
-├── main.dart               # App entry, Firebase init & Global Notification Listener
-├── home.dart               # Smart search & deals feed (with Auto-Expiry filter)
+├── app_colors.dart         # Centralized Theming Engine & Multi-Theme Definitions
+├── main.dart               # App entry, ThemeProvider, & Firebase initialization
+├── home.dart               # Smart deals feed & Savings tracker (with Reset logic)
+├── account.dart            # User profile, Order history, & Action center
+├── setting.dart            # Multi-Theme selector & App preferences
 ├── map.dart                # Interactive location discovery & Store Markers
-├── store_home.dart         # Merchant control panel & Deal publishing logic
-├── notifications_screen.dart# Range & Category filter settings
-├── ai_guide_screen.dart    # AI Chat interface & logic
-├── saved_stores.dart       # User favorites list
-└── database_service.dart   # Centralized Firestore logic
+├── store_home.dart         # Merchant dashboard & Deal management
+└── ai_guide_screen.dart    # AI Chat interface powered by Gemini
 ```
 
 ---

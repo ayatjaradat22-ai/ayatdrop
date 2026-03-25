@@ -26,7 +26,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
 
-// مفتاح عالمي للتنقل (للتعامل مع Deep Linking)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -34,12 +33,15 @@ void main() async {
   await EasyLocalization.ensureInitialized();
 
   final prefs = await SharedPreferences.getInstance();
-  final bool isDark = prefs.getBool('isDark') ?? false;
+  final String themeName = prefs.getString('app_theme') ?? 'light';
+  AppTheme savedTheme = AppTheme.values.firstWhere(
+    (e) => e.name == themeName, 
+    orElse: () => AppTheme.light
+  );
 
   try {
     await Firebase.initializeApp();
     
-    // تفعيل وضع الأوفلاين (Firestore Persistence)
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
@@ -52,9 +54,7 @@ void main() async {
     const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
     await flutterLocalNotificationsPlugin.initialize(
       const InitializationSettings(android: initializationSettingsAndroid),
-      onDidReceiveNotificationResponse: (NotificationResponse details) {
-        // سيتم التعامل مع النقر هنا لاحقاً إذا أردت
-      },
+      onDidReceiveNotificationResponse: (NotificationResponse details) {},
     );
 
     _setupBackgroundListeners();
@@ -65,7 +65,7 @@ void main() async {
 
   runApp(
     ChangeNotifierProvider(
-      create: (_) => ThemeProvider(isDark),
+      create: (_) => ThemeProvider(savedTheme),
       child: EasyLocalization(
         supportedLocales: const [Locale('en'), Locale('ar')],
         path: 'assets/translations',
@@ -86,7 +86,6 @@ void _setupBackgroundListeners() {
     }
   });
 
-  // التعامل مع فتح التطبيق من الإشعار (بينما التطبيق في الخلفية)
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     _handleDeepLink(message.data);
   });
@@ -104,13 +103,7 @@ void _setupBackgroundListeners() {
   );
 }
 
-void _handleDeepLink(Map<String, dynamic> data) {
-  // مثال: إذا كان الإشعار يحتوي على dealId، نفتح صفحة العرض
-  if (data.containsKey('dealId')) {
-    // هنا نستخدم navigatorKey للتنقل لصفحة معينة
-    // سأترك هذا الهيكل جاهزاً لك
-  }
-}
+void _handleDeepLink(Map<String, dynamic> data) {}
 
 void _setupUserAndFollowersListener(String uid) async {
   String? token = await FirebaseMessaging.instance.getToken();
@@ -170,23 +163,31 @@ void _showNotification(String? title, String? body, Map<String, dynamic> data) {
         playSound: true,
       ),
     ),
-    payload: data['dealId'], // تمرير الـ ID للتعامل مع النقر
+    payload: data['dealId'],
   );
 }
 
 class ThemeProvider with ChangeNotifier {
-  ThemeMode _themeMode;
+  AppTheme _currentTheme;
   
-  ThemeProvider(bool isDark) : _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+  ThemeProvider(AppTheme theme) : _currentTheme = theme;
 
-  ThemeMode get themeMode => _themeMode;
+  AppTheme get currentTheme => _currentTheme;
 
-  void toggleTheme(bool isDark) async {
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+  // للموافقة مع الكود القديم إن وجد
+  ThemeMode get themeMode => _currentTheme == AppTheme.light ? ThemeMode.light : ThemeMode.dark;
+
+  void setTheme(AppTheme theme) async {
+    _currentTheme = theme;
     notifyListeners();
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDark', isDark);
+    await prefs.setString('app_theme', theme.name);
+  }
+
+  // للموافقة مع الكود القديم
+  void toggleTheme(bool isDark) {
+    setTheme(isDark ? AppTheme.dark : AppTheme.light);
   }
 }
 
@@ -196,23 +197,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
-      navigatorKey: navigatorKey, // ربط الـ NavigatorKey
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
-      themeMode: themeProvider.themeMode,
-      theme: ThemeData(
-        useMaterial3: true, 
-        colorSchemeSeed: AppColors.dropRed,
-        scaffoldBackgroundColor: Colors.white,
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true, 
-        brightness: Brightness.dark, 
-        colorSchemeSeed: AppColors.dropRed,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-      ),
+      theme: AppColors.getTheme(themeProvider.currentTheme),
       home: const SplashScreen(),
     );
   }

@@ -13,7 +13,6 @@ class _LanguageScreenState extends State<LanguageScreen> {
   @override
   Widget build(BuildContext context) {
     final currentLocale = context.locale;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,7 +31,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white70 : Colors.grey[700],
+                color: AppColors.getSubtitleColor(context),
               ),
             ),
             const SizedBox(height: 30),
@@ -76,22 +75,18 @@ class _LanguageScreenState extends State<LanguageScreen> {
     required bool isSelected,
     required String icon,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return GestureDetector(
       onTap: () {
         if (context.locale != locale) {
           context.setLocale(locale);
-          setState(() {}); // لتحديث الواجهة فوراً
+          setState(() {}); 
         }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? AppColors.dropRed.withOpacity(0.1) 
-              : (isDark ? Colors.grey[900] : Colors.white),
+          color: AppColors.getCardBackground(context, isSelected: isSelected),
           borderRadius: BorderRadius.circular(25),
           border: Border.all(
             color: isSelected ? AppColors.dropRed : Colors.transparent,
@@ -122,7 +117,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? AppColors.dropRed : (isDark ? Colors.white : Colors.black87),
+                color: AppColors.getTextColor(context, isSelected: isSelected),
               ),
             ),
             const SizedBox(height: 4),

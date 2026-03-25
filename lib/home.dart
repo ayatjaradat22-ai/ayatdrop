@@ -65,7 +65,7 @@ class MainWrapperState extends State<MainWrapper> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.dropRed,
+        selectedItemColor: AppColors.getPrimaryColor(context),
         unselectedItemColor: Colors.grey.shade400,
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -114,7 +114,7 @@ class MainWrapperState extends State<MainWrapper> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: _selectedIndex == 3 ? AppColors.dropRed : Colors.grey.shade400,
+                          color: _selectedIndex == 3 ? AppColors.getPrimaryColor(context) : Colors.grey.shade400,
                           width: 1.5,
                         ),
                         image: imageProvider != null 
@@ -122,7 +122,7 @@ class MainWrapperState extends State<MainWrapper> {
                             : null,
                       ),
                       child: imageProvider == null
-                          ? Icon(Icons.person_rounded, size: 20, color: _selectedIndex == 3 ? AppColors.dropRed : Colors.grey.shade400) 
+                          ? Icon(Icons.person_rounded, size: 20, color: _selectedIndex == 3 ? AppColors.getPrimaryColor(context) : Colors.grey.shade400) 
                           : null,
                     );
                   }
@@ -185,12 +185,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
   Widget _buildHeader() {
     User? user = FirebaseAuth.instance.currentUser;
+    final primaryColor = AppColors.getPrimaryColor(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 40),
-      decoration: const BoxDecoration(
-        color: AppColors.dropRed,
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
+      decoration: BoxDecoration(
+        color: primaryColor,
+        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,7 +261,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               filled: true,
               fillColor: Colors.white.withOpacity(0.9),
               hintText: "deal_search_hint".tr(),
-              prefixIcon: const Icon(Icons.search, color: AppColors.dropRed),
+              prefixIcon: Icon(Icons.search, color: primaryColor),
               suffixIcon: _searchController.text.isNotEmpty 
                 ? IconButton(icon: const Icon(Icons.clear, color: Colors.grey), onPressed: () => setState(() => _searchController.clear())) 
                 : null,
@@ -294,7 +295,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               ));
             }
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.dropRed));
+              return Center(child: CircularProgressIndicator(color: AppColors.getPrimaryColor(context)));
             }
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return _buildEmptyState();
@@ -358,7 +359,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     final oldPrice = data['oldPrice']?.toString() ?? "";
     final newPrice = data['newPrice']?.toString() ?? "";
     final user = FirebaseAuth.instance.currentUser;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = AppColors.isDarkMode(context);
+    final primaryColor = AppColors.getPrimaryColor(context);
     
     double discountVal = double.tryParse(discount) ?? 0;
     bool isHot = discountVal > 10;
@@ -369,7 +371,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
         decoration: BoxDecoration(
-          color: isHot ? Colors.orange.withOpacity(isDark ? 0.1 : 0.05) : Theme.of(context).cardColor,
+          color: isHot ? AppColors.getHotDealBackground(context) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           border: isHot ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1.5) : null,
           boxShadow: [
@@ -387,7 +389,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => StoreProfileScreen(storeId: data['storeId'] ?? doc.id, storeName: storeName)));
                     },
-                    child: Text(storeName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.dropRed, fontWeight: FontWeight.w900, fontSize: 16))),
+                    child: Text(storeName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 16))),
                 ),
               ],
             ),
@@ -397,10 +399,10 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isHot ? Colors.orange.withOpacity(0.2) : AppColors.dropRed.withOpacity(0.1), 
+                    color: isHot ? Colors.orange.withOpacity(0.2) : primaryColor.withOpacity(0.1), 
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(_getCategoryIcon(data['category'], productName), color: AppColors.dropRed, size: 22),
+                  child: Icon(_getCategoryIcon(data['category'], productName), color: primaryColor, size: 22),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
@@ -430,13 +432,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   children: [
                     if (newPrice.isNotEmpty) ...[
                       Text("$newPrice ${"jod_currency".tr()}", 
-                        style: TextStyle(color: isHot ? (isDark ? Colors.orange[300] : Colors.orange[900]) : AppColors.dropRed, fontWeight: FontWeight.w900, fontSize: 18)),
+                        style: TextStyle(color: isHot ? (isDark ? Colors.orange[300] : Colors.orange[900]) : primaryColor, fontWeight: FontWeight.w900, fontSize: 18)),
                       if (oldPrice.isNotEmpty)
                         Text("$oldPrice ${"jod_currency".tr()}", 
                           style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 12)),
                     ] else
                       Text("$discount% ${"off_text".tr()}", 
-                        style: TextStyle(color: isHot ? Colors.orange : AppColors.dropRed, fontWeight: FontWeight.bold, fontSize: 18)),
+                        style: TextStyle(color: isHot ? Colors.orange : primaryColor, fontWeight: FontWeight.bold, fontSize: 18)),
                     
                     Row(
                       mainAxisSize: MainAxisSize.min,
@@ -460,7 +462,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                           builder: (context, favSnapshot) {
                             bool isFav = favSnapshot.hasData && favSnapshot.data!.exists;
                             return IconButton(
-                              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: AppColors.dropRed, size: 18),
+                              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: Colors.red, size: 18),
                               onPressed: () => _toggleFavorite(doc.id, data, isFav),
                               constraints: const BoxConstraints(),
                               padding: const EdgeInsets.all(5),
@@ -483,7 +485,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     final Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     final double lat = (data['lat'] as num?)?.toDouble() ?? 31.9539;
     final double lng = (data['lng'] as num?)?.toDouble() ?? 35.9106;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = AppColors.isDarkMode(context);
+    final primaryColor = AppColors.getPrimaryColor(context);
     final wrapper = context.findAncestorStateOfType<MainWrapperState>();
 
     FirebaseFirestore.instance.collection('deals').doc(doc.id).update({'clicks': FieldValue.increment(1)});
@@ -509,7 +512,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: isDark ? Colors.white24 : Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
+              Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: AppColors.getSubtitleColor(context).withOpacity(0.3), borderRadius: BorderRadius.circular(10)))),
               const SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -526,7 +529,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                           child: Text(data['storeName'] ?? "Store", 
                             maxLines: 1, 
                             overflow: TextOverflow.ellipsis, 
-                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.dropRed))),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryColor))),
                         Text(data['product'] ?? "Product", 
                           maxLines: 1, 
                           overflow: TextOverflow.ellipsis, 
@@ -549,7 +552,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               
               Container(
                 padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50], borderRadius: BorderRadius.circular(15)),
+                decoration: BoxDecoration(color: AppColors.getSecondaryBackground(context), borderRadius: BorderRadius.circular(15)),
                 child: Row(
                   children: [
                     const Expanded(child: Text("هل العرض لا يزال متوفراً؟", style: TextStyle(fontWeight: FontWeight.bold))),
@@ -569,7 +572,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   if (data['newPrice'] != null)
-                    Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.dropRed)),
+                    Text("${data['newPrice']} ${"jod_currency".tr()}", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: primaryColor)),
                   const SizedBox(width: 12),
                   if (data['oldPrice'] != null)
                     Text("${data['oldPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 18, color: Colors.grey, decoration: TextDecoration.lineThrough)),
@@ -579,13 +582,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100], 
+                  color: AppColors.getSecondaryBackground(context), 
                   borderRadius: BorderRadius.circular(18), 
                   border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100)
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.location_on_rounded, color: AppColors.dropRed, size: 22),
+                    Icon(Icons.location_on_rounded, color: primaryColor, size: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -642,12 +645,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                       height: 55,
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.dropRed, width: 1.5),
+                          side: BorderSide(color: primaryColor, width: 1.5),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         ),
                         onPressed: () => _openMaps(lat, lng),
-                        icon: const Icon(Icons.directions_rounded, color: AppColors.dropRed, size: 20),
-                        label: Text("go_action".tr(), style: const TextStyle(color: AppColors.dropRed, fontWeight: FontWeight.bold, fontSize: 15)),
+                        icon: Icon(Icons.directions_rounded, color: primaryColor, size: 20),
+                        label: Text("go_action".tr(), style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 15)),
                       ),
                     ),
                   ),
@@ -657,7 +660,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                       height: 55,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.dropRed,
+                          backgroundColor: primaryColor,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           elevation: 0,
                         ),
@@ -722,7 +725,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 data: qrString,
                 version: QrVersions.auto,
                 size: 200.0,
-                foregroundColor: AppColors.dropRed,
+                foregroundColor: AppColors.getPrimaryColor(context),
               ),
             ),
             const SizedBox(height: 20),
@@ -931,7 +934,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   }
 
   Widget _buildNeumorphicActionButton({required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -939,18 +941,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor, 
           borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: isDark ? Colors.white.withOpacity(0.02) : Colors.white,
-              blurRadius: 15,
-              offset: const Offset(-8, -8),
-            ),
-            BoxShadow(
-              color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.12), 
-              blurRadius: 15,
-              offset: const Offset(8, 8),
-            ),
-          ],
+          boxShadow: AppColors.getNeumorphicShadow(context),
         ),
         child: Column(
           children: [
@@ -997,6 +988,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
   Widget _buildCategoryItem(IconData icon, String categoryKey) {
     bool isSelected = _selectedCategory == categoryKey;
+    final primaryColor = AppColors.getPrimaryColor(context);
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -1012,15 +1004,15 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           Material(
             elevation: isSelected ? 10 : 5,
             shape: const CircleBorder(),
-            shadowColor: isSelected ? AppColors.dropRed : Colors.black26,
+            shadowColor: isSelected ? primaryColor : Colors.black26,
             child: CircleAvatar(
               radius: 28,
-              backgroundColor: isSelected ? AppColors.dropRed : Theme.of(context).cardColor,
-              child: Icon(icon, color: isSelected ? Colors.white : AppColors.dropRed, size: 28),
+              backgroundColor: isSelected ? primaryColor : Theme.of(context).cardColor,
+              child: Icon(icon, color: isSelected ? Colors.white : primaryColor, size: 28),
             ),
           ),
           const SizedBox(height: 10),
-          Text(categoryKey.tr(), style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? AppColors.dropRed : null)),
+          Text(categoryKey.tr(), style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? primaryColor : null)),
         ],
       ),
     );
@@ -1035,7 +1027,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
   Widget _buildSavingsCard() {
     final user = FirebaseAuth.instance.currentUser;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = AppColors.isDarkMode(context);
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
       builder: (context, snapshot) {
@@ -1048,7 +1040,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            color: isDark ? Colors.green.withOpacity(0.1) : const Color(0xFFF1F8E9).withOpacity(0.3), 
+            color: AppColors.getSavingsCardBackground(context), 
             borderRadius: BorderRadius.circular(25), 
             border: Border.all(color: Colors.green.withOpacity(0.1))
           ),
@@ -1056,13 +1048,20 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             children: [
               const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.account_balance_wallet, color: Colors.white)),
               const SizedBox(width: 15),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("total_saved_title".tr(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                  Text("${totalSaved.toStringAsFixed(3)} ${"jod_currency".tr()}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : Colors.black)),
-                ],
-              )
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("total_saved_title".tr(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                    Text("${totalSaved.toStringAsFixed(3)} ${"jod_currency".tr()}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : Colors.black)),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => _resetSavings(user?.uid),
+                icon: const Icon(Icons.refresh_rounded, color: Colors.green),
+                tooltip: "reset_savings_tooltip".tr(),
+              ),
             ],
           ),
         );
@@ -1070,9 +1069,36 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     );
   }
 
+  void _resetSavings(String? uid) async {
+    if (uid == null) return;
+
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("reset_savings_title".tr()),
+        content: Text("reset_savings_confirmation".tr()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("cancel_button".tr())),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true), 
+            child: Text("reset_action".tr(), style: const TextStyle(color: Colors.red))
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({'totalSaved': 0});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("savings_reset_success".tr()), backgroundColor: Colors.green));
+      }
+    }
+  }
+
   Widget _buildLargeFollowButton(String storeId, String storeName) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox();
+    final primaryColor = AppColors.getPrimaryColor(context);
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('following_stores').doc(storeId).snapshots(),
       builder: (context, snapshot) {
@@ -1090,8 +1116,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing ? Colors.grey[200] : AppColors.dropRed.withOpacity(0.1),
-              foregroundColor: isFollowing ? Colors.black : AppColors.dropRed,
+              backgroundColor: isFollowing ? Colors.grey[200] : primaryColor.withOpacity(0.1),
+              foregroundColor: isFollowing ? Colors.black : primaryColor,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             ),

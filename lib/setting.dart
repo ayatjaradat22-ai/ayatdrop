@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'app_colors.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
@@ -21,7 +22,6 @@ class SettingScreen extends StatefulWidget {
 }
 
 class _SettingScreenState extends State<SettingScreen> {
-  static const Color dropRed = Color(0xFFFF1111);
   bool _isPremium = false;
 
   @override
@@ -41,20 +41,19 @@ class _SettingScreenState extends State<SettingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = AppColors.getPrimaryColor(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.getScaffoldBackground(context),
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: AppColors.getScaffoldBackground(context),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.getPrimaryTextColor(context), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text("settings".tr(), style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+        title: Text("settings".tr(), style: TextStyle(color: AppColors.getPrimaryTextColor(context), fontWeight: FontWeight.bold, fontSize: 22)),
         centerTitle: false,
       ),
       body: SingleChildScrollView(
@@ -64,58 +63,164 @@ class _SettingScreenState extends State<SettingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-            _buildPremiumCard(context),
+            _buildPremiumCard(context, primaryColor),
             const SizedBox(height: 30),
             _buildSectionHeader("account_settings_section".tr()),
-            _buildModernTile(Icons.edit_outlined, "edit_profile".tr(), () {
+            _buildModernTile(Icons.edit_outlined, "edit_profile".tr(), primaryColor, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
             }),
-            _buildModernTile(Icons.key_outlined, "security_password".tr(), () {
+            _buildModernTile(Icons.key_outlined, "security_password".tr(), primaryColor, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordScreen()));
             }),
-            _buildModernTile(Icons.bookmark_border_rounded, "saved_offers".tr(), () {
+            _buildModernTile(Icons.bookmark_border_rounded, "saved_offers".tr(), primaryColor, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedStoresScreen()));
             }),
             const SizedBox(height: 25),
             _buildSectionHeader("preferences_section".tr()),
             
             _buildModernTile(
-              Icons.dark_mode_rounded, 
-              "dark_mode".tr(), 
+              Icons.palette_outlined, 
+              "app_theme".tr(), 
+              primaryColor,
               () {
                 if (!_isPremium) {
-                  _showPremiumRequiredDialog();
+                  _showPremiumRequiredDialog(primaryColor);
+                } else {
+                  _showThemeSelector();
                 }
               },
-              trailing: _isPremium 
-                ? Switch(
-                    value: themeProvider.themeMode == ThemeMode.dark,
-                    activeColor: dropRed,
-                    onChanged: (val) => themeProvider.toggleTheme(val),
-                  )
-                : const Icon(Icons.stars_rounded, color: Colors.amber, size: 18),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
             ),
 
-            _buildModernTile(Icons.language_rounded, "app_language".tr(), () {
+            _buildModernTile(Icons.language_rounded, "app_language".tr(), primaryColor, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen()));
             }),
-            _buildModernTile(Icons.notifications_none_rounded, "notifications".tr(), () {
+            _buildModernTile(Icons.notifications_none_rounded, "notifications".tr(), primaryColor, () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("notifications_coming_soon".tr()), backgroundColor: dropRed),
+                SnackBar(content: Text("notifications_coming_soon".tr()), backgroundColor: primaryColor),
               );
             }),
             const SizedBox(height: 25),
             _buildSectionHeader("support_section".tr()),
-            _buildModernTile(Icons.help_outline_rounded, "help_center".tr(), () {
+            _buildModernTile(Icons.help_outline_rounded, "help_center".tr(), primaryColor, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const FAQScreen()));
             }),
-            _buildModernTile(Icons.info_outline_rounded, "about_drop".tr(), () {
+            _buildModernTile(Icons.info_outline_rounded, "about_drop".tr(), primaryColor, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutAppScreen()));
             }),
             const SizedBox(height: 40),
-            _buildLogoutButton(context),
+            _buildLogoutButton(context, primaryColor),
             const SizedBox(height: 40),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showThemeSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.getScaffoldBackground(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(10)))),
+            const SizedBox(height: 25),
+            Text(
+              "choose_theme".tr(),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.getPrimaryTextColor(context)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "customize_app_appearance".tr(),
+              style: TextStyle(fontSize: 14, color: AppColors.getSecondaryTextColor(context)),
+            ),
+            const SizedBox(height: 25),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+                childAspectRatio: 1.1,
+                children: [
+                  _buildThemeCard(AppTheme.light, "Light Mode", Colors.white, AppColors.dropRed),
+                  _buildThemeCard(AppTheme.dark, "Dark Mode", const Color(0xFF1E1E1E), AppColors.dropRed),
+                  _buildThemeCard(AppTheme.midnight, "Midnight", const Color(0xFF0D1117), const Color(0xFF1A237E)),
+                  _buildThemeCard(AppTheme.forest, "Forest", const Color(0xFFF1F8E9), const Color(0xFF2E7D32)),
+                  _buildThemeCard(AppTheme.purple, "Purple", const Color(0xFF120024), const Color(0xFF4A148C)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeCard(AppTheme theme, String name, Color bg, Color accent) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    bool isSelected = themeProvider.currentTheme == theme;
+
+    return GestureDetector(
+      onTap: () {
+        themeProvider.setTheme(theme);
+        Navigator.pop(context);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? accent : Colors.grey.withOpacity(0.2),
+            width: isSelected ? 3 : 1,
+          ),
+          boxShadow: isSelected 
+            ? [BoxShadow(color: accent.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))]
+            : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 0, left: 0, right: 0,
+                child: Container(height: 15, color: accent.withOpacity(0.8)),
+              ),
+              Positioned(
+                bottom: 12, left: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 40, height: 6, decoration: BoxDecoration(color: isSelected ? accent : Colors.grey.withOpacity(0.5), borderRadius: BorderRadius.circular(5))),
+                    const SizedBox(height: 4),
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: theme == AppTheme.light || theme == AppTheme.forest ? Colors.black87 : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Positioned(
+                  top: 20, right: 10,
+                  child: Icon(Icons.check_circle, color: accent, size: 20),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -124,16 +229,16 @@ class _SettingScreenState extends State<SettingScreen> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 5, bottom: 15),
-      child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.grey[400], letterSpacing: 1)),
+      child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.getHintTextColor(context), letterSpacing: 1)),
     );
   }
 
-  Widget _buildModernTile(IconData icon, String title, VoidCallback onTap, {Widget? trailing}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildModernTile(IconData icon, String title, Color primaryColor, VoidCallback onTap, {Widget? trailing}) {
+    final isDark = AppColors.isDarkMode(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+        color: AppColors.getSecondaryBackground(context),
         borderRadius: BorderRadius.circular(18),
       ),
       child: ListTile(
@@ -145,15 +250,15 @@ class _SettingScreenState extends State<SettingScreen> {
             color: isDark ? Colors.black26 : Colors.white, 
             borderRadius: BorderRadius.circular(12)
           ),
-          child: Icon(icon, color: dropRed, size: 22),
+          child: Icon(icon, color: primaryColor, size: 22),
         ),
-        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black)),
+        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.getPrimaryTextColor(context))),
         trailing: trailing ?? Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white24 : Colors.black26),
       ),
     );
   }
 
-  Widget _buildPremiumCard(BuildContext context) {
+  Widget _buildPremiumCard(BuildContext context, Color primaryColor) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -162,7 +267,7 @@ class _SettingScreenState extends State<SettingScreen> {
           image: AssetImage("images/splash_screen.png"),
           fit: BoxFit.cover,
         ),
-        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Container(
         padding: const EdgeInsets.all(25),
@@ -186,7 +291,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   const SizedBox(height: 15),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: dropRed,
+                      backgroundColor: primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
@@ -196,29 +301,28 @@ class _SettingScreenState extends State<SettingScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.stars_rounded, color: Color(0xFFFFD700), size: 60),
+            const Icon(Icons.stars_rounded, color: AppColors.goldColor, size: 60),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLogoutButton(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildLogoutButton(BuildContext context, Color primaryColor) {
     return SizedBox(
       width: double.infinity,
       child: TextButton(
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade200)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: AppColors.getCommonBorderSide(context)),
         ),
         onPressed: () => _logout(),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.logout_rounded, color: dropRed, size: 20),
+            const Icon(Icons.logout_rounded, color: Colors.red, size: 20),
             const SizedBox(width: 10),
-            Text("logout_button".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("logout_button".tr(), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
       ),
@@ -249,16 +353,16 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  void _showPremiumRequiredDialog() {
+  void _showPremiumRequiredDialog(Color primaryColor) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text("premium_feature".tr()),
-        content: Text("dark_mode_premium_desc".tr()),
+        content: Text("themes_premium_desc".tr()),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: dropRed),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));

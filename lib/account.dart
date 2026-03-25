@@ -14,6 +14,7 @@ import 'saved_stores.dart';
 import 'premium.dart';
 import 'store_home.dart';
 import 'store_login.dart';
+import 'app_colors.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -23,17 +24,15 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  static const Color dropRed = Color(0xFFFF1111);
-  static const Color goldColor = Color(0xFFFFD700);
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final primaryColor = AppColors.getPrimaryColor(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.light ? const Color(0xFFF8F9FA) : Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.getScaffoldBackground(context),
       appBar: AppBar(
-        backgroundColor: dropRed,
+        backgroundColor: primaryColor,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
@@ -43,7 +42,7 @@ class _AccountScreenState extends State<AccountScreen> {
         stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: dropRed));
+            return Center(child: CircularProgressIndicator(color: primaryColor));
           }
 
           String name = "no_name".tr();
@@ -64,7 +63,7 @@ class _AccountScreenState extends State<AccountScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                _buildProfileHeader(photoUrl, name, email),
+                _buildProfileHeader(photoUrl, name, email, primaryColor),
                 const SizedBox(height: 30),
 
                 if (role == 'store')
@@ -72,6 +71,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     title: "store_dashboard".tr(),
                     subtitle: "manage_deals_and_subs".tr(),
                     icon: Icons.storefront_rounded,
+                    primaryColor: primaryColor,
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreHomeScreen()));
                     },
@@ -83,46 +83,47 @@ class _AccountScreenState extends State<AccountScreen> {
                   title: "premium_title".tr(),
                   subtitle: "premium_subtitle".tr(),
                   icon: Icons.stars_rounded,
+                  primaryColor: primaryColor,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen())),
                 ),
 
                 const SizedBox(height: 25),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text("preferences_section".tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                  child: Text("preferences_section".tr(), style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.getHintTextColor(context)))),
                 const SizedBox(height: 10),
 
-                _buildActionCard("saved_offers".tr(), Icons.favorite_rounded, () {
+                _buildActionCard("saved_offers".tr(), Icons.favorite_rounded, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedStoresScreen()));
                 }),
 
-                _buildActionCard("order_history".tr(), Icons.history, () {
+                _buildActionCard("order_history".tr(), Icons.history, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderHistoryScreen()));
                 }),
 
-                _buildActionCard("payment_methods".tr(), Icons.payment, () {
+                _buildActionCard("payment_methods".tr(), Icons.payment, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentMethodsScreen()));
                 }),
 
-                _buildActionCard("saved_addresses".tr(), Icons.location_on_outlined, () {
+                _buildActionCard("saved_addresses".tr(), Icons.location_on_outlined, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedAddressesScreen()));
                 }),
 
                 const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text("support_section".tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                  child: Text("support_section".tr(), style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.getHintTextColor(context)))),
                 const SizedBox(height: 10),
 
-                _buildActionCard("faq_title".tr(), Icons.help_outline, () {
+                _buildActionCard("faq_title".tr(), Icons.help_outline, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const FAQScreen()));
                 }),
 
-                _buildActionCard("contact_us".tr(), Icons.headset_mic_outlined, () {
+                _buildActionCard("contact_us".tr(), Icons.headset_mic_outlined, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const ContactUsScreen()));
                 }),
 
-                _buildActionCard("settings".tr(), Icons.settings_outlined, () {
+                _buildActionCard("settings".tr(), Icons.settings_outlined, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingScreen()));
                 }),
 
@@ -150,7 +151,7 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  Widget _buildProfileHeader(String? photoUrl, String name, String email) {
+  Widget _buildProfileHeader(String? photoUrl, String name, String email, Color primaryColor) {
     ImageProvider? imageProvider;
     
     if (photoUrl != null && photoUrl.isNotEmpty) {
@@ -175,16 +176,16 @@ class _AccountScreenState extends State<AccountScreen> {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.getCardBackground(context),
                   shape: BoxShape.circle,
-                  border: Border.all(color: dropRed, width: 2),
+                  border: Border.all(color: primaryColor, width: 2),
                   image: imageProvider != null 
                     ? DecorationImage(image: imageProvider, fit: BoxFit.cover) 
                     : null,
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
                 ),
                 child: (imageProvider == null)
-                  ? const Icon(Icons.person, color: dropRed, size: 50) 
+                  ? Icon(Icons.person, color: primaryColor, size: 50) 
                   : null,
               ),
               Positioned(
@@ -192,7 +193,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 right: 0,
                 child: Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(color: dropRed, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: primaryColor, shape: BoxShape.circle),
                   child: const Icon(Icons.edit, color: Colors.white, size: 14),
                 ),
               ),
@@ -200,13 +201,13 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ),
         const SizedBox(height: 15),
-        Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-        Text(email, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+        Text(name, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.getPrimaryTextColor(context))),
+        Text(email, style: TextStyle(color: AppColors.getSecondaryTextColor(context), fontSize: 14)),
       ],
     );
   }
 
-  Widget _buildSpecialDashboardCard({required String title, required String subtitle, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildSpecialDashboardCard({required String title, required String subtitle, required IconData icon, required Color primaryColor, required VoidCallback onTap}) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -215,7 +216,7 @@ class _AccountScreenState extends State<AccountScreen> {
           image: AssetImage("images/splash_screen.png"),
           fit: BoxFit.cover,
         ),
-        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -233,15 +234,15 @@ class _AccountScreenState extends State<AccountScreen> {
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: goldColor.withOpacity(0.2),
+              color: AppColors.goldColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: goldColor.withOpacity(0.5), width: 1),
+              border: Border.all(color: AppColors.goldColor.withOpacity(0.5), width: 1),
             ),
-            child: Icon(icon, color: goldColor, size: 28),
+            child: Icon(icon, color: AppColors.goldColor, size: 28),
           ),
           title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
           subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[300], fontSize: 13)),
-          trailing: const Icon(Icons.arrow_forward_ios_rounded, color: goldColor, size: 16),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.goldColor, size: 16),
         ),
       ),
     );
@@ -271,7 +272,7 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, VoidCallback onTap) {
+  Widget _buildActionCard(String title, IconData icon, Color primaryColor, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
@@ -279,21 +280,21 @@ class _AccountScreenState extends State<AccountScreen> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          color: AppColors.getCardBackground(context),
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.grey.withOpacity(0.1)),
+          border: AppColors.getCommonBorderSide(context).toBorder(),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                Icon(icon, color: dropRed, size: 22),
+                Icon(icon, color: primaryColor, size: 22),
                 const SizedBox(width: 15),
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.getPrimaryTextColor(context))),
               ],
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+            Icon(Icons.arrow_forward_ios, color: AppColors.getHintTextColor(context), size: 16),
           ],
         ),
       ),

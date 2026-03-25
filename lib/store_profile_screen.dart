@@ -19,10 +19,8 @@ class StoreProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.getScaffoldBackground(context),
       appBar: AppBar(
         backgroundColor: AppColors.dropRed,
         elevation: 0,
@@ -45,7 +43,7 @@ class StoreProfileScreen extends StatelessWidget {
           return SingleChildScrollView(
             child: Column(
               children: [
-                _buildStoreHeader(storeData, isDark),
+                _buildStoreHeader(storeData, context),
                 
                 // About Section
                 if (aboutText.isNotEmpty)
@@ -55,16 +53,16 @@ class StoreProfileScreen extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+                        color: AppColors.getSecondaryBackground(context),
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                        border: AppColors.getCommonBorderSide(context).toBorder(),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text("about_store_label".tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.dropRed)),
                           const SizedBox(height: 8),
-                          Text(aboutText, style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87, height: 1.5)),
+                          Text(aboutText, style: TextStyle(fontSize: 14, color: AppColors.getSecondaryTextColor(context), height: 1.5)),
                         ],
                       ),
                     ),
@@ -86,20 +84,20 @@ class StoreProfileScreen extends StatelessWidget {
                     ),
                   ),
                 
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  child: Divider(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  child: Divider(color: Theme.of(context).dividerColor),
                 ),
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text("active_deals".tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    child: Text("active_deals".tr(), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.getPrimaryTextColor(context))),
                   ),
                 ),
                 
-                _buildDealsList(isDark),
+                _buildDealsList(context),
               ],
             ),
           );
@@ -108,7 +106,7 @@ class StoreProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStoreHeader(Map<String, dynamic>? data, bool isDark) {
+  Widget _buildStoreHeader(Map<String, dynamic>? data, BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(bottom: 30, top: 10, left: 25, right: 25),
@@ -132,7 +130,7 @@ class StoreProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDealsList(bool isDark) {
+  Widget _buildDealsList(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('deals')
@@ -160,9 +158,10 @@ class StoreProfileScreen extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 15),
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                color: AppColors.getCardBackground(context),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
+                border: AppColors.getCommonBorderSide(context).toBorder(),
+                boxShadow: AppColors.getCommonShadow(context),
               ),
               child: Row(
                 children: [
@@ -170,12 +169,12 @@ class StoreProfileScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(data['product'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(data['product'] ?? "", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.getPrimaryTextColor(context))),
                         Text("${data['discount']}% OFF", style: const TextStyle(color: AppColors.dropRed, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
-                  Text("${data['newPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  Text("${data['newPrice']} ${"jod_currency".tr()}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.getPrimaryTextColor(context))),
                 ],
               ),
             );

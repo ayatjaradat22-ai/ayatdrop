@@ -2,30 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'app_colors.dart';
 
 class SavedStoresScreen extends StatelessWidget {
   const SavedStoresScreen({super.key});
 
-  static const Color dropRed = Color(0xFFFF1111);
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = AppColors.getPrimaryColor(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.getScaffoldBackground(context),
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: AppColors.getScaffoldBackground(context),
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.getPrimaryTextColor(context), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "saved_offers".tr(),
-          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+          style: TextStyle(color: AppColors.getPrimaryTextColor(context), fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -37,7 +36,7 @@ class SavedStoresScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: dropRed));
+            return Center(child: CircularProgressIndicator(color: primaryColor));
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -63,7 +62,7 @@ class SavedStoresScreen extends StatelessWidget {
     final productName = data['product'] ?? "Product";
     final storeName = data['storeName'] ?? "Store";
     final discount = data['discount'] ?? "0%";
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = AppColors.getPrimaryColor(context);
 
     IconData categoryIcon = Icons.local_offer_rounded;
     if (category == 'cat_food' || productName.toString().toLowerCase().contains('burger')) {
@@ -78,31 +77,31 @@ class SavedStoresScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: AppColors.getCardBackground(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        border: AppColors.getCommonBorderSide(context).toBorder(),
+        boxShadow: AppColors.getCommonShadow(context),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: dropRed.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(categoryIcon, color: dropRed),
+            decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(categoryIcon, color: primaryColor),
           ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(productName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
-                Text(storeName, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                Text(productName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.getPrimaryTextColor(context))),
+                Text(storeName, style: TextStyle(color: AppColors.getSecondaryTextColor(context), fontSize: 13)),
               ],
             ),
           ),
           Column(
             children: [
-              Text(discount, style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(discount, style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 16)),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
                 onPressed: () => _removeFavorite(doc.id),
@@ -129,12 +128,11 @@ class SavedStoresScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.favorite_border_rounded, size: 80, color: isDark ? Colors.white10 : Colors.grey[200]),
+          const Icon(Icons.favorite_border_rounded, size: 80, color: Colors.red),
           const SizedBox(height: 15),
           Text("no_saved_offers".tr(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
         ],
