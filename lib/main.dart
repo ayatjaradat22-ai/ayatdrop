@@ -174,7 +174,6 @@ class ThemeProvider with ChangeNotifier {
 
   AppTheme get currentTheme => _currentTheme;
 
-  // للموافقة مع الكود القديم إن وجد
   ThemeMode get themeMode => _currentTheme == AppTheme.light ? ThemeMode.light : ThemeMode.dark;
 
   void setTheme(AppTheme theme) async {
@@ -185,14 +184,50 @@ class ThemeProvider with ChangeNotifier {
     await prefs.setString('app_theme', theme.name);
   }
 
-  // للموافقة مع الكود القديم
+  void resetToDefault() {
+    if (_currentTheme != AppTheme.light && _currentTheme != AppTheme.dark) {
+      setTheme(AppTheme.light);
+    }
+  }
+
   void toggleTheme(bool isDark) {
     setTheme(isDark ? AppTheme.dark : AppTheme.light);
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _listenToPremiumStatus();
+  }
+
+  void _listenToPremiumStatus() {
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots().listen((snapshot) {
+          if (snapshot.exists) {
+            final data = snapshot.data();
+            bool isPremium = data?['isPremium'] ?? false;
+            
+            if (!isPremium) {
+              final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+              // إذا كان المستخدم غير بريميوم ويستخدم ثيماً مخصصاً، نرجعه للثيم الأساسي
+              themeProvider.resetToDefault();
+            }
+          }
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);

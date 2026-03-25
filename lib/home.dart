@@ -447,7 +447,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                           IconButton(
                             icon: const Icon(Icons.share, color: Colors.blue, size: 18),
                             onPressed: () {
-                              Share.share("Check out this deal: $productName at $storeName for only $newPrice JOD! Download Drop App now.");
+                              Share.share("share_msg".tr(args: [productName, storeName, newPrice]));
                             },
                             constraints: const BoxConstraints(),
                             padding: EdgeInsets.zero,
@@ -555,7 +555,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 decoration: BoxDecoration(color: AppColors.getSecondaryBackground(context), borderRadius: BorderRadius.circular(15)),
                 child: Row(
                   children: [
-                    const Expanded(child: Text("هل العرض لا يزال متوفراً؟", style: TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(child: Text("is_deal_available".tr(), style: const TextStyle(fontWeight: FontWeight.bold))),
                     IconButton(onPressed: () => _voteDeal(doc.id, true), icon: const Icon(Icons.thumb_up_alt_outlined, color: Colors.green, size: 20)),
                     IconButton(onPressed: () => _voteDeal(doc.id, false), icon: const Icon(Icons.thumb_down_alt_outlined, color: Colors.red, size: 20)),
                   ],
@@ -617,7 +617,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     _showQRConfirmation(doc.id, data);
                   },
                   icon: const Icon(Icons.qr_code_2_rounded, color: Colors.white),
-                  label: const Text("تأكيد الخصم عبر الكود", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  label: Text("confirm_with_qr".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 10),
@@ -691,7 +691,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
     if (expiry.isBefore(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("عذراً، هذا العرض انتهت صلاحيته ولا يمكن استخدامه")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("deal_expired_error".tr())));
       return;
     }
 
@@ -712,11 +712,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("تأكيد الخصم", textAlign: TextAlign.center),
+        title: Text("confirm_discount_title".tr(), textAlign: TextAlign.center),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("اجعل صاحب المتجر يمسح هذا الكود لتأكيد الخصم وتوثيق توفيرك", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey)),
+            Text("qr_scan_instruction".tr(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Colors.grey)),
             const SizedBox(height: 20),
             SizedBox(
               width: 200,
@@ -730,11 +730,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             ),
             const SizedBox(height: 20),
             Text("${savedAmount.toStringAsFixed(3)} JOD", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
-            const Text("مبلغ التوفير المتوقع", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Text("expected_savings".tr(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إغلاق")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("close_button".tr())),
         ],
       ),
     );
@@ -752,7 +752,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     final voteDoc = await voteRef.get();
     if (voteDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لقد قمت بالتصويت مسبقاً على هذا العرض")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("already_voted".tr())));
       return;
     }
 
@@ -760,7 +760,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     FirebaseFirestore.instance.collection('deals').doc(dealId).update({
       isUpvote ? 'upvotes' : 'downvotes': FieldValue.increment(1)
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isUpvote ? "شكراً لتقييمك!" : "سنتحقق من صحة العرض، شكراً لك"), backgroundColor: isUpvote ? Colors.green : Colors.orange));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isUpvote ? "thanks_for_rating".tr() : "we_will_verify".tr()), backgroundColor: isUpvote ? Colors.green : Colors.orange));
   }
 
   Future<void> _markAsBought(String dealId, Map<String, dynamic> data) async {
@@ -769,7 +769,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
     if (expiry.isBefore(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("هذا العرض انتهت صلاحيته ولا يمكن احتسابه")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("expired_deal_cant_count".tr())));
       return;
     }
 
@@ -781,7 +781,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     final boughtDoc = await boughtRef.get();
     if (boughtDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("هذا العرض محسوب مسبقاً في توفيرك")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("already_counted_savings".tr())));
       return;
     }
 
@@ -1072,27 +1072,21 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   void _resetSavings(String? uid) async {
     if (uid == null) return;
 
-    bool? confirm = await showDialog<bool>(
+    AppColors.showThemedDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("reset_savings_title".tr()),
-        content: Text("reset_savings_confirmation".tr()),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("cancel_button".tr())),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true), 
-            child: Text("reset_action".tr(), style: const TextStyle(color: Colors.red))
-          ),
-        ],
-      ),
+      title: "reset_savings_title".tr(),
+      description: "reset_savings_confirmation".tr(),
+      primaryButtonText: "reset_action".tr(),
+      primaryButtonColor: Colors.red,
+      icon: Icons.refresh_rounded,
+      onPrimaryPressed: () async {
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({'totalSaved': 0});
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("savings_reset_success".tr()), backgroundColor: Colors.green));
+        }
+      },
     );
-
-    if (confirm == true) {
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({'totalSaved': 0});
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("savings_reset_success".tr()), backgroundColor: Colors.green));
-      }
-    }
   }
 
   Widget _buildLargeFollowButton(String storeId, String storeName) {

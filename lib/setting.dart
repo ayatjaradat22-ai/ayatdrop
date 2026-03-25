@@ -330,47 +330,36 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   void _logout() async {
-    showDialog(
+    AppColors.showThemedDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("logout_title".tr()),
-        content: Text("logout_confirmation".tr()),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
-          TextButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (!mounted) return;
-              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-            child: Text("logout_button".tr(), style: const TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      title: "logout_title".tr(),
+      description: "logout_confirmation".tr(),
+      primaryButtonText: "logout_button".tr(),
+      primaryButtonColor: Colors.red,
+      icon: Icons.logout_rounded,
+      onPrimaryPressed: () async {
+        await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      },
     );
   }
 
   void _showPremiumRequiredDialog(Color primaryColor) {
-    showDialog(
+    AppColors.showThemedDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("premium_feature".tr()),
-        content: Text("themes_premium_desc".tr()),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));
-            },
-            child: Text("upgrade_now".tr(), style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      title: "premium_feature".tr(),
+      description: "themes_premium_desc".tr(),
+      primaryButtonText: "upgrade_now".tr(),
+      primaryButtonColor: primaryColor,
+      icon: Icons.stars_rounded,
+      onPrimaryPressed: () {
+        Navigator.pop(context);
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumScreen()));
+      },
     );
   }
 }

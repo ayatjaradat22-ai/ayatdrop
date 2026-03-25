@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 enum AppTheme { light, dark, midnight, forest, purple }
 
@@ -7,7 +8,6 @@ class AppColors {
   static const Color goldColor = Color(0xFFFFD700);
   static const Color premiumBlack = Color(0xFF121212);
 
-  // 1. Light Theme (كلاسيكي)
   static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
@@ -17,7 +17,6 @@ class AppColors {
     dividerColor: Colors.grey[300],
   );
 
-  // 2. Dark Theme (كلاسيكي)
   static final ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
@@ -27,7 +26,6 @@ class AppColors {
     dividerColor: Colors.grey[800],
   );
 
-  // 3. Midnight Blue Theme (كحلي فاخر)
   static final ThemeData midnightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
@@ -37,7 +35,6 @@ class AppColors {
     dividerColor: Colors.white10,
   );
 
-  // 4. Emerald Forest Theme (أخضر زمردي حديث)
   static final ThemeData forestTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
@@ -47,7 +44,6 @@ class AppColors {
     dividerColor: const Color(0xFFE0F2F1),
   );
 
-  // 5. Deep Purple Theme (بنفسجي ملكي)
   static final ThemeData purpleTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
@@ -67,56 +63,21 @@ class AppColors {
     }
   }
 
-  static Color getPrimaryColor(BuildContext context) {
-    return Theme.of(context).colorScheme.primary;
-  }
-
-  static bool isDarkMode(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark;
-  }
-
-  static Color getPrimaryTextColor(BuildContext context) {
-    return isDarkMode(context) ? Colors.white : Colors.black87;
-  }
-
-  static Color getSecondaryTextColor(BuildContext context) {
-    return isDarkMode(context) ? Colors.white70 : Colors.grey[700]!;
-  }
-
-  static Color getSubtitleColor(BuildContext context) {
-    return getSecondaryTextColor(context);
-  }
-
-  static Color getTextColor(BuildContext context, {bool isSelected = false}) {
-    if (isSelected) return getPrimaryColor(context);
-    return getPrimaryTextColor(context);
-  }
-
-  static Color getHintTextColor(BuildContext context) {
-    return isDarkMode(context) ? Colors.white38 : Colors.grey[500]!;
-  }
-
-  static Color getScaffoldBackground(BuildContext context) {
-    return Theme.of(context).scaffoldBackgroundColor;
-  }
-
+  static Color getPrimaryColor(BuildContext context) => Theme.of(context).colorScheme.primary;
+  static bool isDarkMode(BuildContext context) => Theme.of(context).brightness == Brightness.dark;
+  static Color getPrimaryTextColor(BuildContext context) => isDarkMode(context) ? Colors.white : Colors.black87;
+  static Color getSecondaryTextColor(BuildContext context) => isDarkMode(context) ? Colors.white70 : Colors.grey[700]!;
+  static Color getSubtitleColor(BuildContext context) => getSecondaryTextColor(context);
+  static Color getScaffoldBackground(BuildContext context) => Theme.of(context).scaffoldBackgroundColor;
+  static Color getSecondaryBackground(BuildContext context) => isDarkMode(context) ? Colors.white.withOpacity(0.05) : Colors.grey[100]!;
   static Color getCardBackground(BuildContext context, {bool isSelected = false}) {
     if (isSelected) return getPrimaryColor(context).withOpacity(0.1);
     return Theme.of(context).cardColor;
   }
-
-  static Color getSecondaryBackground(BuildContext context) {
-    return isDarkMode(context) ? Colors.white.withOpacity(0.05) : Colors.grey[100]!;
-  }
-
-  static Color getHotDealBackground(BuildContext context) {
-    return Colors.orange.withOpacity(isDarkMode(context) ? 0.1 : 0.05);
-  }
-
-  static Color getSavingsCardBackground(BuildContext context) {
-    return isDarkMode(context) ? Colors.green.withOpacity(0.1) : const Color(0xFFF1F8E9).withOpacity(0.3);
-  }
-
+  static Color getHintTextColor(BuildContext context) => isDarkMode(context) ? Colors.white38 : Colors.grey[500]!;
+  static Color getHotDealBackground(BuildContext context) => Colors.orange.withOpacity(isDarkMode(context) ? 0.1 : 0.05);
+  static Color getSavingsCardBackground(BuildContext context) => isDarkMode(context) ? Colors.green.withOpacity(0.1) : const Color(0xFFF1F8E9).withOpacity(0.3);
+  
   static List<BoxShadow> getCommonShadow(BuildContext context) {
     return [
       BoxShadow(
@@ -130,24 +91,98 @@ class AppColors {
   static List<BoxShadow> getNeumorphicShadow(BuildContext context) {
     final isDark = isDarkMode(context);
     return [
-      BoxShadow(
-        color: isDark ? Colors.white.withOpacity(0.02) : Colors.white,
-        blurRadius: 15,
-        offset: const Offset(-8, -8),
-      ),
-      BoxShadow(
-        color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.12),
-        blurRadius: 15,
-        offset: const Offset(8, 8),
-      ),
+      BoxShadow(color: isDark ? Colors.white.withOpacity(0.02) : Colors.white, blurRadius: 15, offset: const Offset(-8, -8)),
+      BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.12), blurRadius: 15, offset: const Offset(8, 8)),
     ];
   }
+  
+  static BorderSide getCommonBorderSide(BuildContext context) => BorderSide(color: isDarkMode(context) ? Colors.white10 : Colors.grey.shade200, width: 1);
 
-  static BorderSide getCommonBorderSide(BuildContext context) {
-    return BorderSide(
-      color: isDarkMode(context) ? Colors.white10 : Colors.grey.shade200,
-      width: 1,
+  static void showThemedDialog({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required String primaryButtonText,
+    required VoidCallback onPrimaryPressed,
+    String? secondaryButtonText,
+    Color? primaryButtonColor,
+    IconData? icon,
+  }) {
+    final isDark = isDarkMode(context);
+    final primaryColor = primaryButtonColor ?? getPrimaryColor(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 30),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF222222) : Colors.white,
+            borderRadius: BorderRadius.circular(35),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: primaryColor, size: 40),
+                const SizedBox(height: 15),
+              ],
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
+                  color: isDark ? Colors.white70 : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      (secondaryButtonText ?? "cancel_button").tr(), 
+                      style: TextStyle(color: isDark ? Colors.white38 : Colors.grey, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: onPrimaryPressed,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: Text(primaryButtonText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  static Color getTextColor(BuildContext context, {bool isSelected = false}) {
+    if (isSelected) return getPrimaryColor(context);
+    return getPrimaryTextColor(context);
   }
 }
 
