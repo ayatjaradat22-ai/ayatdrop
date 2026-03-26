@@ -1,15 +1,13 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# CocoaPods Podfile for the iOS platform of the AyatDrop Flutter project.
+# This file defines the dependencies and build configurations for the iOS runner.
+# It manages the integration of Flutter plugins and native iOS libraries (Pods).
 
-# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
-ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+# تم رفع الإصدار ليتوافق مع متطلبات mobile_scanner الحديثة (15.5+) بناءً على الخطأ الظاهر
+# Raised the deployment target to 16.0 to satisfy mobile_scanner requirements and ensure compatibility with modern plugins.
+platform :ios, '16.0'
 
-project 'Runner', {
-  'Debug' => :debug,
-  'Profile' => :release,
-  'Release' => :release,
-}
-
+# Helper function to locate the Flutter SDK root directory by reading Generated.xcconfig.
+# This ensures that the Podfile can find the necessary Flutter build scripts.
 def flutter_root
   generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
   unless File.exist?(generated_xcode_build_settings_path)
@@ -23,21 +21,39 @@ def flutter_root
   raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
 end
 
+# Load the Flutter podhelper script which provides essential Flutter-specific Ruby methods
+# such as flutter_ios_podfile_setup and flutter_install_all_ios_pods.
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
 
+# Standard Flutter setup for the iOS Podfile environment.
 flutter_ios_podfile_setup
 
+# Main target definition for the iOS Runner application.
 target 'Runner' do
+  # Use frameworks instead of static libraries to support Swift and mixed-language plugins.
   use_frameworks!
 
+  # Enable modular headers for all pods to improve build performance and ensure compatibility with newer Swift versions.
+  use_modular_headers!
+
+  # Automatically installs all pods required by the Flutter plugins listed in your project's pubspec.yaml.
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  target 'RunnerTests' do
-    inherit! :search_paths
-  end
 end
 
+# Post-install hook to programmatically modify the generated Pods project settings after they are installed.
+# This is used to enforce specific build settings across all dependencies.
 post_install do |installer|
   installer.pods_project.targets.each do |target|
+    # Apply standard Flutter build settings to each individual pod target.
     flutter_additional_ios_build_settings(target)
+
+    target.build_configurations.each do |config|
+      # إجبار كافة المكتبات على استخدام iOS 16.0 لحل تعارض mobile_scanner
+      # Force all pod targets to use iOS 16.0 to resolve deployment target mismatches (required by mobile_scanner).
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+
+      # Disable Bitcode as it is deprecated by Apple (since Xcode 14) and can cause build issues with modern plugins.
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+    end
   end
 end

@@ -75,9 +75,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
       Navigator.pop(context);
 
+      // تم حذف const هنا أيضاً
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MainWrapper()),
+        MaterialPageRoute(builder: (context) => MainWrapper()),
       );
 
     } on FirebaseAuthException catch (e) {
@@ -85,8 +86,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       String errorMessage = "error_occurred".tr();
       if (e.code == 'email-already-in-use') {
         errorMessage = "email_already_used".tr();
-      } else if (e.code == 'weak-password') {
-        errorMessage = "password_too_short".tr();
       }
       _showSnackBar(errorMessage);
     } catch (e) {

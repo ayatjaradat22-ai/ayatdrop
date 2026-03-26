@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.drop"
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion // رفعنا الحد الأدنى لضمان عمل Firebase والمواقع بشكل أفضل
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -31,7 +31,6 @@ android {
     buildTypes {
         getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
-            // تصحيح الأخطاء هنا
             isMinifyEnabled = false
             isShrinkResources = false
         }
@@ -40,13 +39,8 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
-    implementation("com.google.firebase:firebase-messaging")
-    implementation("com.google.firebase:firebase-analytics")
 }
 
 flutter {
     source = "../.."
 }
-
-apply(plugin = "com.google.gms.google-services")

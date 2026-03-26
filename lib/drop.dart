@@ -6,7 +6,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'forgot_password.dart';
 import 'signup.dart';
 import 'home.dart';
-import 'store.dart';
 import 'store_login.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -45,9 +44,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.of(context).pop();
 
+      // تم حذف const هنا لأن MainWrapper ليس ثابتاً
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MainWrapper()),
+        MaterialPageRoute(builder: (context) => MainWrapper()),
       );
 
     } on FirebaseAuthException catch (e) {
@@ -66,7 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         children: [
           Positioned.fill(child: Image.asset("images/sign_in_screan.png", fit: BoxFit.cover)),
-          
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -90,12 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 Text("login_title".tr(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 30),
-                                _input(
-                                  emailController, 
-                                  Icons.email_outlined, 
-                                  "email_hint".tr(),
-                                  limit: 50,
-                                ),
+                                _input(emailController, Icons.email_outlined, "email_hint".tr(), limit: 50),
                                 const SizedBox(height: 20),
                                 _input(
                                   passwordController, Icons.lock_outline, "password_hint".tr(),
@@ -135,11 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       color: Colors.white.withOpacity(0.8),
                                       shape: BoxShape.circle,
                                       boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
-                                        ),
+                                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
                                       ],
                                     ),
                                     child: const Icon(Icons.storefront_rounded, color: dropRed, size: 30),
