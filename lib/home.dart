@@ -751,34 +751,85 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     };
 
     String qrString = jsonEncode(qrData);
+    final primaryColor = AppColors.getPrimaryColor(context);
+    final isDark = AppColors.isDarkMode(context);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("confirm_discount_title".tr(), textAlign: TextAlign.center),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        title: Text("confirm_discount_title".tr(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text("qr_scan_instruction".tr(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: 200,
-              height: 200,
-              child: QrImageView(
-                data: qrString,
-                version: QrVersions.auto,
-                size: 200.0,
-                foregroundColor: AppColors.getPrimaryColor(context),
-              ),
+            const SizedBox(height: 25),
+            
+            // تصميم QR المحدث
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: primaryColor.withOpacity(0.15), blurRadius: 25, spreadRadius: 5)
+                    ],
+                  ),
+                  child: QrImageView(
+                    data: qrString,
+                    version: QrVersions.auto,
+                    size: 220.0,
+                    errorCorrectionLevel: QrErrorCorrectLevel.H, // مستوى حماية عالي للسماح بالشعار
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square, // عيون مربعة كلاسيكية مثل الصورة
+                      color: Colors.black87,
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square, // نقاط مربعة
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                
+                // المربع الأبيض في المنتصف مع الحرف
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white, width: 4),
+                  ),
+                  child: Center(
+                    child: Text(
+                      "D.", // حرف D لـ Drop
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: primaryColor,
+                        fontFamily: "Roboto", // أو أي خط مميز عندك
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            Text("${savedAmount.toStringAsFixed(3)} JOD", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
-            Text("expected_savings".tr(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            
+            const SizedBox(height: 25),
+            Text("${savedAmount.toStringAsFixed(3)} JOD", 
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: isDark ? Colors.greenAccent : Colors.green.shade700)),
+            Text("expected_savings".tr(), style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w600)),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("close_button".tr())),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: Text("close_button".tr(), style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold))
+          ),
         ],
       ),
     );
