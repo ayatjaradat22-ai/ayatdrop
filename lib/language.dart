@@ -40,23 +40,23 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
-                childAspectRatio: 0.9,
+                childAspectRatio: 0.8, // تم تقليل القيمة لزيادة طول المربع وتفادي الـ Overflow
                 children: [
                   _buildLanguageCard(
                     context,
                     title: "English",
-                    subtitle: "English",
+                    subtitle: "English Language",
+                    shortName: "En",
                     locale: const Locale('en'),
                     isSelected: currentLocale.languageCode == 'en',
-                    icon: "🇺🇸",
                   ),
                   _buildLanguageCard(
                     context,
                     title: "العربية",
-                    subtitle: "Arabic",
+                    subtitle: "اللغة العربية",
+                    shortName: "عربي",
                     locale: const Locale('ar'),
                     isSelected: currentLocale.languageCode == 'ar',
-                    icon: "🇸🇦",
                   ),
                 ],
               ),
@@ -71,9 +71,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
     BuildContext context, {
     required String title,
     required String subtitle,
+    required String shortName,
     required Locale locale,
     required bool isSelected,
-    required String icon,
   }) {
     return GestureDetector(
       onTap: () {
@@ -84,7 +84,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
         decoration: BoxDecoration(
           color: AppColors.getCardBackground(context, isSelected: isSelected),
           borderRadius: BorderRadius.circular(25),
@@ -103,19 +103,32 @@ class _LanguageScreenState extends State<LanguageScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.dropRed.withOpacity(0.1) : Colors.transparent,
-                shape: BoxShape.circle,
+            // استخدام Flexible لمنع الـ Overflow في الأيقونة/المربع العلوي
+            Flexible(
+              child: Container(
+                width: 65,
+                height: 65,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.dropRed : AppColors.getSecondaryBackground(context),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  shortName,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : AppColors.getPrimaryColor(context),
+                  ),
+                ),
               ),
-              child: Text(icon, style: const TextStyle(fontSize: 45)),
             ),
             const SizedBox(height: 12),
             Text(
               title,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.getTextColor(context, isSelected: isSelected),
               ),
@@ -123,15 +136,14 @@ class _LanguageScreenState extends State<LanguageScreen> {
             const SizedBox(height: 4),
             Text(
               subtitle,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 11,
                 color: isSelected ? AppColors.dropRed.withOpacity(0.7) : Colors.grey,
               ),
             ),
-            if (isSelected) ...[
-              const SizedBox(height: 8),
-              const Icon(Icons.check_circle, color: AppColors.dropRed, size: 20),
-            ]
           ],
         ),
       ),

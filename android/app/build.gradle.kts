@@ -16,13 +16,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // إضافة هذه الأسطر لإسكات تحذيرات Java القديمة
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.add("-Xlint:-options")
+    }
+
     kotlinOptions {
         jvmTarget = "17"
     }
 
     defaultConfig {
         applicationId = "com.example.drop"
-        minSdk = flutter.minSdkVersion // رفعنا الحد الأدنى لضمان عمل Firebase والمواقع بشكل أفضل
+        minSdk = 24 // رفعنا الحد الأدنى لضمان توافق أفضل مع Firebase و Maps
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -31,8 +36,9 @@ android {
     buildTypes {
         getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true // تفعيل التقليل ليكون التطبيق أسرع وأصغر
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' as ll; // استخدام alias لتجنب التضارب
 import 'package:share_plus/share_plus.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
+
 import 'map.dart';
 import 'ai_guide_screen.dart';
 import 'account.dart';
@@ -18,7 +20,7 @@ import 'ten_jd_challenge_screen.dart';
 import 'smart_shopping_list_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'premium.dart';
-import 'app_colors.dart';
+import 'theme/app_colors.dart';
 import 'store_profile_screen.dart';
 import 'edit_profile.dart';
 
@@ -32,21 +34,35 @@ class MainWrapper extends StatefulWidget {
 
 class MainWrapperState extends State<MainWrapper> {
   late int _selectedIndex;
-  LatLng? _mapTargetLocation;
+  ll.LatLng? _mapTargetLocation; // استخدام ll.LatLng
+  DateTime? _lastPressedAt;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: _selectedIndex);
   }
 
-  void setIndex(int index, {LatLng? location}) {
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void setIndex(int index, {ll.LatLng? location}) { // استخدام ll.LatLng
     setState(() {
       _selectedIndex = index;
       if (location != null) {
         _mapTargetLocation = location;
       }
     });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -58,80 +74,111 @@ class MainWrapperState extends State<MainWrapper> {
       const AccountScreen(),
     ];
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: pages,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.getPrimaryColor(context),
-        unselectedItemColor: Colors.grey.shade400,
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-            if (index != 1) _mapTargetLocation = null;
-          });
-        },
-        items: [
-          BottomNavigationBarItem(icon: const Icon(Icons.home_filled), label: "home_nav".tr()),
-          BottomNavigationBarItem(icon: const Icon(Icons.map_rounded), label: "map_nav".tr()),
-          BottomNavigationBarItem(icon: const Icon(Icons.auto_awesome_mosaic_rounded), label: "ai_nav".tr()),
-          BottomNavigationBarItem(
-            icon: StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (context, authSnapshot) {
-                final uid = authSnapshot.data?.uid;
-                if (uid == null) return const Icon(Icons.person_rounded);
-                
-                return StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
-                  builder: (context, snapshot) {
-                    String? photoUrl;
-                    ImageProvider? imageProvider;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
 
-                    if (snapshot.hasData && snapshot.data!.exists) {
-                      final data = snapshot.data!.data() as Map<String, dynamic>?;
-                      photoUrl = data?['photoUrl'];
-                      
-                      if (photoUrl != null && photoUrl.isNotEmpty) {
-                        if (photoUrl.startsWith('http')) {
-                          imageProvider = NetworkImage(photoUrl);
-                        } else {
-                          try {
-                            imageProvider = MemoryImage(base64Decode(photoUrl));
-                          } catch (e) {
-                            imageProvider = null;
+        if (_selectedIndex != 0) {
+          setIndex(0);
+          return;
+        }
+
+        final now = DateTime.now();
+        if (_lastPressedAt == null || now.difference(_lastPressedAt!) > const Duration(seconds: 2)) {
+          _lastPressedAt = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("exit_press_again".tr()),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              margin: const EdgeInsets.all(15),
+            ),
+          );
+          return;
+        }
+        
+        Navigator.of(context).pop(); 
+      },
+      child: Scaffold(
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              _selectedIndex = index;
+              if (index != 1) _mapTargetLocation = null;
+            });
+          },
+          children: pages,
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: AppColors.getPrimaryColor(context),
+          unselectedItemColor: Colors.grey.shade400,
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setIndex(index);
+          },
+          items: [
+            BottomNavigationBarItem(icon: const Icon(Icons.home_filled), label: "home_nav".tr()),
+            BottomNavigationBarItem(icon: const Icon(Icons.map_rounded), label: "map_nav".tr()),
+            BottomNavigationBarItem(icon: const Icon(Icons.auto_awesome_mosaic_rounded), label: "ai_nav".tr()),
+            BottomNavigationBarItem(
+              icon: StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                builder: (context, authSnapshot) {
+                  final uid = authSnapshot.data?.uid;
+                  if (uid == null) return const Icon(Icons.person_rounded);
+                  
+                  return StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+                    builder: (context, snapshot) {
+                      String? photoUrl;
+                      ImageProvider? imageProvider;
+
+                      if (snapshot.hasData && snapshot.data!.exists) {
+                        final data = snapshot.data!.data() as Map<String, dynamic>?;
+                        photoUrl = data?['photoUrl'];
+                        
+                        if (photoUrl != null && photoUrl.isNotEmpty) {
+                          if (photoUrl.startsWith('http')) {
+                            imageProvider = NetworkImage(photoUrl);
+                          } else {
+                            try {
+                              imageProvider = MemoryImage(base64Decode(photoUrl));
+                            } catch (e) {
+                              imageProvider = null;
+                            }
                           }
                         }
                       }
-                    }
 
-                    return Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _selectedIndex == 3 ? AppColors.getPrimaryColor(context) : Colors.grey.shade400,
-                          width: 1.5,
+                      return Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: _selectedIndex == 3 ? AppColors.getPrimaryColor(context) : Colors.grey.shade400,
+                            width: 1.5,
+                          ),
+                          image: imageProvider != null 
+                              ? DecorationImage(image: imageProvider, fit: BoxFit.cover) 
+                              : null,
                         ),
-                        image: imageProvider != null 
-                            ? DecorationImage(image: imageProvider, fit: BoxFit.cover) 
+                        child: imageProvider == null
+                            ? Icon(Icons.person_rounded, size: 20, color: _selectedIndex == 3 ? AppColors.getPrimaryColor(context) : Colors.grey.shade400) 
                             : null,
-                      ),
-                      child: imageProvider == null
-                          ? Icon(Icons.person_rounded, size: 20, color: _selectedIndex == 3 ? AppColors.getPrimaryColor(context) : Colors.grey.shade400) 
-                          : null,
-                    );
-                  }
-                );
-              }
+                      );
+                    }
+                  );
+                }
+              ),
+              label: "account_nav".tr(),
             ),
-            label: "account_nav".tr(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -147,7 +194,7 @@ class HomeScreenContent extends StatefulWidget {
 class _HomeScreenContentState extends State<HomeScreenContent> {
   String? _selectedCategory;
   final TextEditingController _searchController = TextEditingController();
-  final LatLng _userLocation = const LatLng(31.9539, 35.9106);
+  final ll.LatLng _userLocation = const ll.LatLng(31.9539, 35.9106); // استخدام ll.LatLng
 
   @override
   void dispose() {
@@ -491,11 +538,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     FirebaseFirestore.instance.collection('deals').doc(doc.id).update({'clicks': FieldValue.increment(1)});
 
-    double distanceKm = const Distance().as(
-      LengthUnit.Kilometer,
-      _userLocation,
-      LatLng(lat, lng),
-    );
+    double distanceInMeters = Geolocator.distanceBetween(_userLocation.latitude, _userLocation.longitude, lat, lng);
+    double distanceKm = distanceInMeters / 1000;
 
     showModalBottomSheet(
       context: context,
@@ -667,7 +711,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                         onPressed: () {
                           Navigator.pop(sheetContext); 
                           if (wrapper != null) {
-                            wrapper.setIndex(1, location: LatLng(lat, lng)); 
+                            wrapper.setIndex(1, location: ll.LatLng(lat, lng)); // استخدام ll.LatLng
                           }
                         },
                         icon: const Icon(Icons.map_rounded, color: Colors.white, size: 20),

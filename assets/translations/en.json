@@ -309,5 +309,15 @@
   "reset_savings_title": "Reset Savings?",
   "reset_savings_confirmation": "Are you sure you want to reset your total savings to zero?",
   "reset_action": "Reset",
-  "savings_reset_success": "Savings reset successfully!"
+  "savings_reset_success": "Savings reset successfully!",
+  "language_label": "Language",
+  "app_theme": "App Theme",
+  "choose_theme": "Choose Theme",
+  "customize_app_appearance": "Customize app appearance as you like",
+  "themes_premium_desc": "Changing themes is a Premium-only feature.",
+  "theme_light": "Light Mode",
+  "theme_dark": "Dark Mode",
+  "theme_midnight": "Midnight",
+  "theme_forest": "Forest",
+  "theme_purple": "Purple"
 }

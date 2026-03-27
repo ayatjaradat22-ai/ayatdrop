@@ -93,6 +93,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: Text("preferences_section".tr(), style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.getHintTextColor(context)))),
                 const SizedBox(height: 10),
 
+                // زر تبديل اللغة الجديد (نفس التصميم المطلوب)
+                _buildLanguageToggleCard(primaryColor),
+
                 _buildActionCard("saved_offers".tr(), Icons.favorite_rounded, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedStoresScreen()));
                 }),
@@ -147,6 +150,84 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           );
         }
+      ),
+    );
+  }
+
+  Widget _buildLanguageToggleCard(Color primaryColor) {
+    final isArabic = context.locale.languageCode == 'ar';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.getCardBackground(context),
+        borderRadius: BorderRadius.circular(15),
+        border: AppColors.getCommonBorderSide(context).toBorder(),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white10 : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.translate_rounded, color: primaryColor, size: 22),
+              ),
+              const SizedBox(width: 15),
+              Text(
+                "language_label".tr(), // تأكد من وجود مفتاح language_label في الترجمة
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: AppColors.getPrimaryTextColor(context)),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white10 : Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                _buildLangBtn("EN", !isArabic),
+                _buildLangBtn("AR", isArabic),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLangBtn(String label, bool isSelected) {
+    return GestureDetector(
+      onTap: () {
+        if (!isSelected) {
+          context.setLocale(label == "EN" ? const Locale('en') : const Locale('ar'));
+          setState(() {});
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: isSelected ? Colors.black : Colors.grey,
+          ),
+        ),
       ),
     );
   }

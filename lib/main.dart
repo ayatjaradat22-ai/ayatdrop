@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'splash_screen.dart';
-import 'app_colors.dart';
-import 'home.dart';
 
-// قناة التنبيهات للأندرويد
+// استخدام المسار الموحد الجديد حصراً
+import 'theme/app_colors.dart';
+import 'screens/misc/splash_screen.dart';
+
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
   'high_importance_channel',
   'High Importance Notifications',
@@ -31,11 +30,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
-  // تهيئة Firebase لتدعم أندرويد وأبل معاً
   try {
     await Firebase.initializeApp();
-    
-    // إعدادات إضافية للتنبيهات
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -46,6 +42,8 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final String themeName = prefs.getString('app_theme') ?? 'light';
+  
+  // التأكد من استخدام AppTheme من الملف الجديد
   AppTheme savedTheme = AppTheme.values.firstWhere(
     (e) => e.name == themeName, 
     orElse: () => AppTheme.light

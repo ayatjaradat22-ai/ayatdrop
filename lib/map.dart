@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' hide Path; 
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -20,7 +20,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   final MapController _mapController = MapController();
-  LatLng _initialCenter = const LatLng(31.9539, 35.9106); 
+  LatLng _initialCenter = const LatLng(31.9539, 35.9106);
   Position? _userPosition;
   late AnimationController _fireAnimationController;
   String? _selectedCategory;
@@ -61,9 +61,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text("location_service_disabled".tr()), backgroundColor: Colors.orange)
-           );
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("location_service_disabled".tr()), backgroundColor: Colors.orange)
+          );
         }
         return;
       }
@@ -73,7 +73,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) return;
       }
-      
+
       if (permission == LocationPermission.deniedForever) return;
 
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
@@ -138,7 +138,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 Map<String, List<DocumentSnapshot>> storeDeals = {};
                 for (var doc in snapshot.data!.docs) {
                   final data = doc.data() as Map<String, dynamic>;
-                  
+
                   if (data['expiryTime'] != null) {
                     DateTime expiry = (data['expiryTime'] as Timestamp).toDate();
                     if (expiry.isBefore(DateTime.now())) continue;
@@ -155,7 +155,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 }
 
                 List<Marker> markers = [];
-                
+
                 if (_userPosition != null) {
                   markers.add(
                     Marker(
@@ -189,9 +189,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     Marker(
                       point: LatLng(lat, lng),
                       width: 100,
-                      height: 140, 
-                      rotate: true, 
-                      alignment: Alignment.topCenter, 
+                      height: 140,
+                      rotate: true,
+                      alignment: Alignment.topCenter,
                       child: _buildStoreMarker(storeId, firstDealData, deals, hasHotDeal),
                     ),
                   );
@@ -214,7 +214,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               },
             ),
           ),
-          
+
           _buildTopSearchAndFilters(),
 
           Positioned(
@@ -246,8 +246,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     return GestureDetector(
       onTap: () => _showStoreDealsSheet(storeId, storeName, (storeData['lat'] as num?)?.toDouble() ?? 31.9539, (storeData['lng'] as num?)?.toDouble() ?? 35.9106, deals),
       child: Container(
-        alignment: Alignment.bottomCenter, 
-        child: SingleChildScrollView( 
+        alignment: Alignment.bottomCenter,
+        child: SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -276,9 +276,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                       builder: (context, child) {
                         return Transform.scale(
                           scale: 1.0 + (_fireAnimationController.value * 0.25),
-                          child: Icon(Icons.local_fire_department_rounded, 
-                            color: Colors.orange.withOpacity(0.8 - (_fireAnimationController.value * 0.4)), 
-                            size: 75),
+                          child: Icon(Icons.local_fire_department_rounded,
+                              color: Colors.orange.withOpacity(0.8 - (_fireAnimationController.value * 0.4)),
+                              size: 75),
                         );
                       },
                     ),
@@ -287,7 +287,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                       top: -15,
                       child: Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 30),
                     ),
-                    
+
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
@@ -372,10 +372,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(storeName, 
-                              maxLines: 2, 
-                              overflow: TextOverflow.ellipsis, 
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
+                            Text(storeName,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
                             const SizedBox(height: 5),
                             if (distance.isNotEmpty)
                               Text(
@@ -539,13 +539,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isHot ? Colors.orange.withOpacity(0.2) : AppColors.dropRed.withOpacity(0.1), 
-              borderRadius: BorderRadius.circular(10)
+                color: isHot ? Colors.orange.withOpacity(0.2) : AppColors.dropRed.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10)
             ),
             child: Icon(
-              isHot ? Icons.local_fire_department_rounded : Icons.shopping_bag_outlined, 
-              color: isHot ? Colors.orange : AppColors.dropRed, 
-              size: 20
+                isHot ? Icons.local_fire_department_rounded : Icons.shopping_bag_outlined,
+                color: isHot ? Colors.orange : AppColors.dropRed,
+                size: 20
             ),
           ),
           const SizedBox(width: 12),
@@ -553,12 +553,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(data['product'] ?? "", 
-                  maxLines: 1, 
-                  overflow: TextOverflow.ellipsis, 
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black)),
-                Text("${data['discount']}% ${"off_text".tr()}", 
-                  style: TextStyle(color: isHot ? Colors.orange : AppColors.dropRed, fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(data['product'] ?? "",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black)),
+                Text("${data['discount']}% ${"off_text".tr()}",
+                    style: TextStyle(color: isHot ? Colors.orange : AppColors.dropRed, fontWeight: FontWeight.bold, fontSize: 12)),
               ],
             ),
           ),
@@ -566,11 +566,11 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text("${data['newPrice']} ${"jod_currency".tr()}", 
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: isHot ? (isDark ? Colors.orange[300] : Colors.orange[900]) : (isDark ? Colors.white : Colors.black))),
+              Text("${data['newPrice']} ${"jod_currency".tr()}",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: isHot ? (isDark ? Colors.orange[300] : Colors.orange[900]) : (isDark ? Colors.white : Colors.black))),
               if (data['oldPrice'] != null)
-                Text("${data['oldPrice']} ${"jod_currency".tr()}", 
-                  style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 10)),
+                Text("${data['oldPrice']} ${"jod_currency".tr()}",
+                    style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 10)),
             ],
           ),
         ],
@@ -666,7 +666,7 @@ class TrianglePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
-    final path = ui.Path(); 
+    final path = ui.Path();
     path.moveTo(0, 0);
     path.lineTo(size.width, 0);
     path.lineTo(size.width / 2, size.height);

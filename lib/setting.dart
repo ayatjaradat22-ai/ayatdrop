@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'edit_profile.dart';
 import 'change_password.dart';
-import 'language.dart';
 import 'aboutapp.dart';
 import 'premium.dart';
 import 'saved_stores.dart';
 import 'FAQ.dart';
-import 'drop.dart';
+import 'store_login.dart';
 import 'package:provider/provider.dart';
 import 'main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'app_colors.dart';
+import 'theme/app_colors.dart'; // استخدام المسار الجديد فقط
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
@@ -92,9 +91,6 @@ class _SettingScreenState extends State<SettingScreen> {
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
             ),
 
-            _buildModernTile(Icons.language_rounded, "app_language".tr(), primaryColor, () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen()));
-            }),
             _buildModernTile(Icons.notifications_none_rounded, "notifications".tr(), primaryColor, () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text("notifications_coming_soon".tr()), backgroundColor: primaryColor),
@@ -152,11 +148,11 @@ class _SettingScreenState extends State<SettingScreen> {
                 mainAxisSpacing: 15,
                 childAspectRatio: 1.1,
                 children: [
-                  _buildThemeCard(AppTheme.light, "Light Mode", Colors.white, AppColors.dropRed),
-                  _buildThemeCard(AppTheme.dark, "Dark Mode", const Color(0xFF1E1E1E), AppColors.dropRed),
-                  _buildThemeCard(AppTheme.midnight, "Midnight", const Color(0xFF0D1117), const Color(0xFF1A237E)),
-                  _buildThemeCard(AppTheme.forest, "Forest", const Color(0xFFF1F8E9), const Color(0xFF2E7D32)),
-                  _buildThemeCard(AppTheme.purple, "Purple", const Color(0xFF120024), const Color(0xFF4A148C)),
+                  _buildThemeCard(AppTheme.light, "theme_light".tr(), Colors.white, AppColors.dropRed),
+                  _buildThemeCard(AppTheme.dark, "theme_dark".tr(), const Color(0xFF1E1E1E), AppColors.dropRed),
+                  _buildThemeCard(AppTheme.midnight, "theme_midnight".tr(), const Color(0xFF0D1117), const Color(0xFF1A237E)),
+                  _buildThemeCard(AppTheme.forest, "theme_forest".tr(), const Color(0xFFF1F8E9), const Color(0xFF2E7D32)),
+                  _buildThemeCard(AppTheme.purple, "theme_purple".tr(), const Color(0xFF120024), const Color(0xFF4A148C)),
                 ],
               ),
             ),
@@ -341,7 +337,7 @@ class _SettingScreenState extends State<SettingScreen> {
         await FirebaseAuth.instance.signOut();
         if (!mounted) return;
         Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const StoreLoginScreen()),
           (route) => false,
         );
       },

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'theme/app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -13,7 +14,6 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  static const Color dropRed = Color(0xFFFF1111);
   final user = FirebaseAuth.instance.currentUser;
 
   double _range = 10.0;
@@ -39,8 +39,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (permission == LocationPermission.denied) return;
       }
       
-      if (permission == LocationPermission.deniedForever) return;
-
       Position position = await Geolocator.getCurrentPosition();
       if (mounted) {
         setState(() {
@@ -48,7 +46,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Error getting location: $e");
+      debugPrint("Error location: $e");
     }
   }
 
@@ -82,15 +80,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _setDefaultLocation() async {
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("picking_location".tr())),
-      );
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
-      );
-      
+      Position position = await Geolocator.getCurrentPosition();
       if (user != null) {
         await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
           'default_lat': position.latitude,
@@ -110,7 +100,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("location_service_disabled".tr()), backgroundColor: Colors.red),
+          SnackBar(content: Text("error_occurred".tr()), backgroundColor: Colors.red),
         );
       }
     }
@@ -118,39 +108,40 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isDark = AppColors.isDarkMode(context);
+    final primaryColor = AppColors.getPrimaryColor(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.getScaffoldBackground(context),
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        backgroundColor: AppColors.getScaffoldBackground(context),
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.getPrimaryTextColor(context), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "notifications".tr(),
-          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 20),
+          style: TextStyle(color: AppColors.getPrimaryTextColor(context), fontWeight: FontWeight.w900, fontSize: 20),
         ),
       ),
       body: Column(
         children: [
-          SingleChildScrollView(child: _buildSettingsHeader(isDark)),
+          SingleChildScrollView(child: _buildSettingsHeader(isDark, primaryColor)),
           const Divider(height: 1),
           Expanded(
-            child: _buildNotificationsList(),
+            child: _buildNotificationsList(primaryColor),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsHeader(bool isDark) {
+  Widget _buildSettingsHeader(bool isDark, Color primaryColor) {
     return Container(
       padding: const EdgeInsets.all(20),
-      color: isDark ? Colors.grey[900] : Colors.grey[50],
+      color: AppColors.getSecondaryBackground(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -158,7 +149,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("notification_settings".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              TextButton(onPressed: _saveSettings, child: Text("save_changes".tr(), style: const TextStyle(color: dropRed))),
+              TextButton(onPressed: _saveSettings, child: Text("save_changes".tr(), style: TextStyle(color: primaryColor))),
             ],
           ),
           const SizedBox(height: 15),
@@ -167,7 +158,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             value: _range,
             min: 1,
             max: 20,
-            activeColor: dropRed,
+            activeColor: primaryColor,
             onChanged: (val) => setState(() => _range = val),
           ),
           const SizedBox(height: 10),
@@ -180,7 +171,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               return FilterChip(
                 label: Text(cat.tr(), style: TextStyle(color: isSelected ? Colors.white : null, fontSize: 12)),
                 selected: isSelected,
-                selectedColor: dropRed,
+                selectedColor: primaryColor,
                 checkmarkColor: Colors.white,
                 onSelected: (selected) {
                   setState(() {
@@ -237,7 +228,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationsList() {
+  Widget _buildNotificationsList(Color primaryColor) {
     if (user == null) return _buildEmptyState();
 
     return StreamBuilder<QuerySnapshot>(
@@ -247,7 +238,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .collection('following_stores')
           .snapshots(),
       builder: (context, followSnapshot) {
-        if (!followSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: dropRed));
+        if (!followSnapshot.hasData) return Center(child: CircularProgressIndicator(color: primaryColor));
         
         final followedStoreIds = followSnapshot.data!.docs.map((doc) => doc.id).toList();
 
@@ -257,24 +248,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               .orderBy('createdAt', descending: true)
               .snapshots(),
           builder: (context, dealsSnapshot) {
-            if (!dealsSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: dropRed));
+            if (!dealsSnapshot.hasData) return Center(child: CircularProgressIndicator(color: primaryColor));
 
             final notifications = dealsSnapshot.data!.docs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final storeId = data['storeId'];
               final category = data['category']?.toString();
 
-              // قاعدة 1: إذا كان المتجر من المتابعين، أظهره دائماً (أولوية قصوى) - حتى خارج النطاق
               if (followedStoreIds.contains(storeId)) return true;
 
-              // قاعدة 2: إذا كان ضمن الفئات المفضلة والمدى الجغرافي
               if (_selectedCategories.contains(category)) {
                 if (data['lat'] != null && data['lng'] != null) {
-                  double dist = const Distance().as(
-                    LengthUnit.Kilometer,
-                    _currentUserLocation,
-                    LatLng(data['lat'], data['lng']),
-                  );
+                  double dist = Geolocator.distanceBetween(
+                    _currentUserLocation.latitude,
+                    _currentUserLocation.longitude,
+                    data['lat'],
+                    data['lng'],
+                  ) / 1000;
                   return dist <= _range;
                 }
               }
@@ -289,7 +279,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               itemBuilder: (context, index) {
                 final data = notifications[index].data() as Map<String, dynamic>;
                 bool isFollowed = followedStoreIds.contains(data['storeId']);
-                return _buildNotificationTile(data, isFollowed);
+                return _buildNotificationTile(data, isFollowed, primaryColor);
               },
             );
           },
@@ -298,14 +288,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationTile(Map<String, dynamic> data, bool isFollowed) {
+  Widget _buildNotificationTile(Map<String, dynamic> data, bool isFollowed, Color primaryColor) {
     double dist = 0;
     if (data['lat'] != null && data['lng'] != null) {
-      dist = const Distance().as(
-        LengthUnit.Kilometer,
-        _currentUserLocation,
-        LatLng(data['lat'], data['lng']),
-      );
+      dist = Geolocator.distanceBetween(
+        _currentUserLocation.latitude,
+        _currentUserLocation.longitude,
+        data['lat'],
+        data['lng'],
+      ) / 1000;
     }
 
     return Container(
@@ -314,15 +305,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isFollowed ? dropRed.withOpacity(0.3) : Colors.grey.withOpacity(0.1), width: isFollowed ? 1.5 : 1),
+        border: Border.all(color: isFollowed ? primaryColor.withOpacity(0.3) : Colors.grey.withOpacity(0.1), width: isFollowed ? 1.5 : 1),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: isFollowed ? dropRed.withOpacity(0.1) : Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(isFollowed ? Icons.star_rounded : Icons.local_offer_rounded, color: isFollowed ? dropRed : Colors.blue, size: 22),
+            decoration: BoxDecoration(color: isFollowed ? primaryColor.withOpacity(0.1) : Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(isFollowed ? Icons.star_rounded : Icons.local_offer_rounded, color: isFollowed ? primaryColor : Colors.blue, size: 22),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -336,7 +327,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       const SizedBox(width: 5),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: dropRed, borderRadius: BorderRadius.circular(5)),
+                        decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(5)),
                         child: Text("following_label".tr().toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                       ),
                     ],
@@ -346,7 +337,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 Text("${data['product']}: ${data['discount']}% OFF", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 13)),
                 const SizedBox(height: 4),
                 Text(isFollowed ? "new_deal_from_followed".tr() : "near_you".tr(args: [dist.toStringAsFixed(1)]), 
-                  style: TextStyle(color: isFollowed ? dropRed : Colors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
+                  style: TextStyle(color: isFollowed ? primaryColor : Colors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
