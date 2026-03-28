@@ -52,6 +52,5 @@ lib/
 
 ## 👩‍💻 Developed By
 - **Ayat Jaradat**
-- **Aya Shnnaq**
 
 *Made with ❤️ in Jordan to help people save smarter.*

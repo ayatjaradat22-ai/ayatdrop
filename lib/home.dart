@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:latlong2/latlong.dart' as ll; // استخدام alias لتجنب التضارب
+import 'package:latlong2/latlong.dart' as ll; 
 import 'package:share_plus/share_plus.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -34,7 +34,7 @@ class MainWrapper extends StatefulWidget {
 
 class MainWrapperState extends State<MainWrapper> {
   late int _selectedIndex;
-  ll.LatLng? _mapTargetLocation; // استخدام ll.LatLng
+  ll.LatLng? _mapTargetLocation; 
   DateTime? _lastPressedAt;
   late PageController _pageController;
 
@@ -51,7 +51,7 @@ class MainWrapperState extends State<MainWrapper> {
     super.dispose();
   }
 
-  void setIndex(int index, {ll.LatLng? location}) { // استخدام ll.LatLng
+  void setIndex(int index, {ll.LatLng? location}) { 
     setState(() {
       _selectedIndex = index;
       if (location != null) {
@@ -194,7 +194,7 @@ class HomeScreenContent extends StatefulWidget {
 class _HomeScreenContentState extends State<HomeScreenContent> {
   String? _selectedCategory;
   final TextEditingController _searchController = TextEditingController();
-  final ll.LatLng _userLocation = const ll.LatLng(31.9539, 35.9106); // استخدام ll.LatLng
+  final ll.LatLng _userLocation = const ll.LatLng(31.9539, 35.9106); 
 
   @override
   void dispose() {
@@ -711,7 +711,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                         onPressed: () {
                           Navigator.pop(sheetContext); 
                           if (wrapper != null) {
-                            wrapper.setIndex(1, location: ll.LatLng(lat, lng)); // استخدام ll.LatLng
+                            wrapper.setIndex(1, location: ll.LatLng(lat, lng)); 
                           }
                         },
                         icon: const Icon(Icons.map_rounded, color: Colors.white, size: 20),
@@ -766,7 +766,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             Text("qr_scan_instruction".tr(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Colors.grey)),
             const SizedBox(height: 25),
             
-            // تصميم QR المحدث
             Stack(
               alignment: Alignment.center,
               children: [
@@ -776,42 +775,44 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
-                      BoxShadow(color: primaryColor.withOpacity(0.15), blurRadius: 25, spreadRadius: 5)
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, spreadRadius: 5)
                     ],
                   ),
                   child: QrImageView(
                     data: qrString,
                     version: QrVersions.auto,
                     size: 220.0,
-                    errorCorrectionLevel: QrErrorCorrectLevel.H, // مستوى حماية عالي للسماح بالشعار
+                    errorCorrectionLevel: QrErrorCorrectLevel.H, 
                     eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square, // عيون مربعة كلاسيكية مثل الصورة
-                      color: Colors.black87,
+                      eyeShape: QrEyeShape.square, // مربعات (الأطراف)
+                      color: Color(0xFF1A1A1A), 
                     ),
                     dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square, // نقاط مربعة
-                      color: Colors.black87,
+                      dataModuleShape: QrDataModuleShape.circle, // دوائر (النقاط الصغيرة)
+                      color: Color(0xFF1A1A1A),
                     ),
                   ),
                 ),
                 
-                // المربع الأبيض في المنتصف مع الحرف
+                // المربع الأبيض في المنتصف (بدون صورة)
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 55,
+                  height: 55,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white, width: 4),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)
+                    ],
                   ),
                   child: Center(
                     child: Text(
-                      "D.", // حرف D لـ Drop
+                      "D.", 
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 32,
                         fontWeight: FontWeight.w900,
-                        color: primaryColor,
-                        fontFamily: "Roboto", // أو أي خط مميز عندك
+                        color: primaryColor, 
+                        fontFamily: "Roboto",
                       ),
                     ),
                   ),
@@ -1226,7 +1227,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   }
 
   Future<void> _openMaps(double lat, double lng) async {
-    final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
+    final ll.LatLng location = ll.LatLng(lat, lng);
+    final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}");
     if (await canLaunchUrl(googleMapsUrl)) {
       await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
     }
