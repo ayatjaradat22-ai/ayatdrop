@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 
-enum AppTheme { light, dark, midnight, forest, purple }
+enum AppTheme { light, dark, midnight, forest, purple, pink }
 
 class AppColors {
   static const Color dropRed = Color(0xFFFF1111);
@@ -53,6 +53,15 @@ class AppColors {
     dividerColor: Colors.purple.withOpacity(0.1),
   );
 
+  static final ThemeData pinkTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE91E63), primary: const Color(0xFFF06292)),
+    scaffoldBackgroundColor: const Color(0xFFFFF1F6),
+    cardColor: Colors.white,
+    dividerColor: Colors.pink.withOpacity(0.1),
+  );
+
   static ThemeData getTheme(AppTheme theme) {
     switch (theme) {
       case AppTheme.light: return lightTheme;
@@ -60,6 +69,7 @@ class AppColors {
       case AppTheme.midnight: return midnightTheme;
       case AppTheme.forest: return forestTheme;
       case AppTheme.purple: return purpleTheme;
+      case AppTheme.pink: return pinkTheme;
     }
   }
 

@@ -153,6 +153,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   _buildThemeCard(AppTheme.midnight, "theme_midnight".tr(), const Color(0xFF0D1117), const Color(0xFF1A237E)),
                   _buildThemeCard(AppTheme.forest, "theme_forest".tr(), const Color(0xFFF1F8E9), const Color(0xFF2E7D32)),
                   _buildThemeCard(AppTheme.purple, "theme_purple".tr(), const Color(0xFF120024), const Color(0xFF4A148C)),
+                  _buildThemeCard(AppTheme.pink, "theme_pink".tr(), const Color(0xFFFFF1F6), const Color(0xFFE91E63)),
                 ],
               ),
             ),
@@ -204,7 +205,7 @@ class _SettingScreenState extends State<SettingScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: theme == AppTheme.light || theme == AppTheme.forest ? Colors.black87 : Colors.white,
+                        color: theme == AppTheme.light || theme == AppTheme.forest || theme == AppTheme.pink ? Colors.black87 : Colors.white,
                       ),
                     ),
                   ],

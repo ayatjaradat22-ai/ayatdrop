@@ -59,15 +59,15 @@ class SavedStoresScreen extends StatelessWidget {
   Widget _buildSavedDealCard(BuildContext context, DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     String? category = data['category']?.toString();
-    final productName = data['product'] ?? "Product";
-    final storeName = data['storeName'] ?? "Store";
-    final discount = data['discount'] ?? "0%";
+    final productName = data['product']?.toString() ?? "Product";
+    final storeName = data['storeName']?.toString() ?? "Store";
+    final discount = data['discount']?.toString() ?? "0%";
     final primaryColor = AppColors.getPrimaryColor(context);
 
     IconData categoryIcon = Icons.local_offer_rounded;
-    if (category == 'cat_food' || productName.toString().toLowerCase().contains('burger')) {
+    if (category == 'cat_food' || productName.toLowerCase().contains('burger')) {
       categoryIcon = Icons.restaurant_rounded;
-    } else if (category == 'cat_cafes' || productName.toString().toLowerCase().contains('moca')) {
+    } else if (category == 'cat_cafes' || productName.toLowerCase().contains('moca')) {
       categoryIcon = Icons.local_cafe_rounded;
     } else if (category == 'cat_fashion') {
       categoryIcon = Icons.shopping_bag_rounded;

@@ -74,7 +74,14 @@ class MyApp extends StatelessWidget {
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
-      theme: AppColors.getTheme(themeProvider.currentTheme),
+      theme: AppColors.getTheme(themeProvider.currentTheme).copyWith(
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
+      ),
       home: const SplashScreen(),
     );
   }

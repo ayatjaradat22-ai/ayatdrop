@@ -75,7 +75,7 @@ class MainWrapperState extends State<MainWrapper> {
     ];
 
     return PopScope(
-      canPop: false,
+      canPop: true, // تغييرها لـ true للسماح لـ CupertinoPageTransitionsBuilder بالعمل بشكل صحيح
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
