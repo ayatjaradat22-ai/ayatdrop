@@ -23,6 +23,9 @@ import 'premium.dart';
 import 'theme/app_colors.dart';
 import 'store_profile_screen.dart';
 import 'edit_profile.dart';
+import 'services/qr_service.dart';
+import 'screens/merchant/merchant_scanner_screen.dart';
+import 'screens/ai_search_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   final int initialIndex;
@@ -658,7 +661,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     elevation: 0,
                   ),
                   onPressed: () {
-                    _showQRConfirmation(doc.id, data);
+                    QRService.showRedemptionQR(context, {...data, 'id': doc.id});
                   },
                   icon: const Icon(Icons.qr_code_2_rounded, color: Colors.white),
                   label: Text("confirm_with_qr".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),

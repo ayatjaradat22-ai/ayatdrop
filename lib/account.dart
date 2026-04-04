@@ -15,6 +15,7 @@ import 'premium.dart';
 import 'store_home.dart';
 import 'store_login.dart';
 import 'app_colors.dart';
+import 'screens/merchant/merchant_scanner_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -110,6 +111,11 @@ class _AccountScreenState extends State<AccountScreen> {
 
                 _buildActionCard("saved_addresses".tr(), Icons.location_on_outlined, primaryColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedAddressesScreen()));
+                }),
+
+                // الزر السري لتجربة ماسح المحلات (Hacker Mode 🚀)
+                _buildActionCard("merchant_scanner".tr(), Icons.qr_code_scanner_rounded, Colors.blueGrey, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const MerchantScannerScreen()));
                 }),
 
                 const SizedBox(height: 20),

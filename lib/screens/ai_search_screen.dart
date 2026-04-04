@@ -49,7 +49,11 @@ class _AISearchScreenState extends State<AISearchScreen> with SingleTickerProvid
         _isLoading = false;
         if (results.isNotEmpty) {
           final bestMatch = results.first;
-          _aiResponse = "لقد وجدت لك عرضاً مميزاً! بناءً على بحثك عن '${_searchController.text}'، نقترح لك '${bestMatch['last_purchase']}' في منطقة ${bestMatch['location']}. هذا المكان يتناسب مع اهتمامك بـ ${bestMatch['interest']}.";
+          _aiResponse = "🎯 وجدنا لك المكان الأنسب:\n\n"
+              "📍 المتجر: ${bestMatch['shop_name'] ?? 'غير معروف'}\n"
+              "💰 العرض: ${bestMatch['offer'] ?? 'لا يوجد عرض حالي'}\n\n"
+              "💡 لماذا نقترحه؟\n"
+              "${bestMatch['description'] ?? 'بناءً على اهتماماتك السابقة.'}";
         } else {
           _aiResponse = "عذراً، لم أجد نتائج مطابقة تماماً حالياً، لكن يمكنك تجربة البحث عن كلمات أخرى مثل 'قهوة' أو 'ملابس'.";
         }

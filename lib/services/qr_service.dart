@@ -71,6 +71,10 @@ class QRService {
                   dataModuleShape: QrDataModuleShape.circle,
                   color: AppColors.premiumBlack,
                 ),
+                embeddedImage: const AssetImage('images/splash_screen.png'), // شعار Drop في المنتصف
+                embeddedImageStyle: const QrEmbeddedImageStyle(
+                  size: Size(40, 40),
+                ),
               ),
             ),
             const SizedBox(height: 30),
