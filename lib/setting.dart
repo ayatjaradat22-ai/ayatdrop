@@ -7,6 +7,7 @@ import 'premium.dart';
 import 'saved_stores.dart';
 import 'FAQ.dart';
 import 'store_login.dart';
+import 'drop.dart'; // استيراد شاشة تسجيل الدخول الصحيحة
 import 'package:provider/provider.dart';
 import 'main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -338,7 +339,7 @@ class _SettingScreenState extends State<SettingScreen> {
         await FirebaseAuth.instance.signOut();
         if (!mounted) return;
         Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const StoreLoginScreen()),
+          MaterialPageRoute(builder: (context) => const LoginScreen()), // التوجه لشاشة تسجيل الدخول الصحيحة
           (route) => false,
         );
       },

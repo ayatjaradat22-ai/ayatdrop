@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 // استخدام المسار الموحد الجديد حصراً
 import 'theme/app_colors.dart';
@@ -77,8 +78,8 @@ class MyApp extends StatelessWidget {
       theme: AppColors.getTheme(themeProvider.currentTheme).copyWith(
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
-            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.android: SwipeablePageTransitionsBuilder(),
+            TargetPlatform.iOS: SwipeablePageTransitionsBuilder(),
           },
         ),
       ),
