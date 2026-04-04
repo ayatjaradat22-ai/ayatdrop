@@ -1,59 +1,44 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
 admin.initializeApp();
 
+// ملاحظة: يفضل استخدام environment variables بدلاً من كتابة المفتاح هنا مباشرة
+// firebase functions:config:set gemini.key="YOUR_KEY"
+const API_KEY = "YOUR_GEMINI_API_KEY";
+const genAI = new GoogleGenerativeAI(API_KEY);
+
 /**
- * وظيفة تعمل تلقائياً عند إضافة عرض جديد في جدول deals
+ * وظيفة تراقب إضافة أي عرض جديد وتقوم بتحويل وصفه إلى Vector
  */
-exports.sendNotificationOnNewDeal = functions.firestore
-    .document('deals/{dealId}')
-    .onCreate(async (snapshot, context) => {
-        const dealData = snapshot.data();
-        const storeId = dealData.storeId; 
-        const dealId = context.params.dealId;
-
-        console.log(`بدأنا معالجة عرض جديد للمتجر: ${storeId}`);
-
-        // 1. جلب كل المستخدمين
-        const usersSnapshot = await admin.firestore().collection('users').get();
+exports.generateOfferEmbedding = functions.firestore
+    .document("deals/{dealId}") // تم تغييرها لـ deals لتناسب مشروعك
+    .onCreate(async (snap, context) => {
+        const data = snap.data();
         
-        const notificationPromises = [];
+        // نأخذ الوصف أو اسم المنتج لتحويله إلى Vector
+        const textToEmbed = `${data.product || ""} ${data.description || ""} ${data.storeName || ""}`.trim();
 
-        for (const userDoc of usersSnapshot.docs) {
-            const userData = userDoc.data();
-            const fcmToken = userData.fcmToken;
-
-            if (!fcmToken) continue; 
-
-            // 2. التحقق هل هذا المستخدم يتابع المتجر؟
-            const followDoc = await admin.firestore()
-                .collection('users')
-                .doc(userDoc.id)
-                .collection('following_stores')
-                .doc(storeId)
-                .get();
-
-            if (followDoc.exists) {
-                // 3. تجهيز رسالة الإشعار
-                const message = {
-                    notification: {
-                        title: `عرض جديد من ${dealData.storeName || 'متجر تتابعه'} 🔥`,
-                        body: `خصم ${dealData.discount}% على ${dealData.product}`,
-                    },
-                    data: {
-                        dealId: dealId,
-                    },
-                    token: fcmToken,
-                };
-                
-                notificationPromises.push(admin.messaging().send(message));
-            }
+        if (textToEmbed.length === 0) {
+            console.log("No text to embed for document:", context.params.dealId);
+            return null;
         }
 
         try {
-            await Promise.all(notificationPromises);
-            console.log(`تم إرسال الإشعارات لـ ${notificationPromises.length} مستخدم.`);
+            const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+            const result = await model.embedContent(textToEmbed);
+            const embedding = result.embedding.values;
+
+            console.log(`Successfully generated embedding for deal: ${context.params.dealId}`);
+
+            // تحديث المستند بإضافة حقل الـ embedding كـ VectorValue
+            return snap.ref.update({
+                embedding: admin.firestore.FieldValue.vector(embedding),
+                lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+            });
         } catch (error) {
-            console.error('خطأ في الإرسال:', error);
+            console.error("Embedding Generation Error:", error);
+            return null;
         }
     });

@@ -1,0 +1,7 @@
+[
+  {"user_id": "1", "interest": "coffee", "location": "Abdoun", "last_purchase": "Latte"},
+  {"user_id": "2", "interest": "clothes", "location": "Irbid", "last_purchase": "T-shirt"},
+  {"user_id": "3", "interest": "tech", "location": "Amman", "last_purchase": "Airpods"},
+  {"user_id": "4", "interest": "coffee", "location": "Amman", "last_purchase": "Espresso"},
+  {"user_id": "5", "interest": "books", "location": "Zarqa", "last_purchase": "Novel"}
+]
