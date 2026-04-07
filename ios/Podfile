@@ -49,10 +49,12 @@ post_install do |installer|
 
     target.build_configurations.each do |config|
       # إجبار كافة المكتبات على استخدام iOS 16.0 لحل تعارض mobile_scanner
-      # Force all pod targets to use iOS 16.0 to resolve deployment target mismatches (required by mobile_scanner).
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
 
-      # Disable Bitcode as it is deprecated by Apple (since Xcode 14) and can cause build issues with modern plugins.
+      # حل مشكلة المحاكي على أجهزة الماك (M1/M2/M3)
+      config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+
+      # Disable Bitcode
       config.build_settings['ENABLE_BITCODE'] = 'NO'
     end
   end

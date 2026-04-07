@@ -497,7 +497,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                           IconButton(
                             icon: const Icon(Icons.share, color: Colors.blue, size: 18),
                             onPressed: () {
-                              Share.share("share_msg".tr(args: [productName, storeName, newPrice]));
+                              final box = context.findRenderObject() as RenderBox?;
+                              Share.share(
+                                "share_msg".tr(args: [productName, storeName, newPrice]),
+                                sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
+                              );
                             },
                             constraints: const BoxConstraints(),
                             padding: EdgeInsets.zero,

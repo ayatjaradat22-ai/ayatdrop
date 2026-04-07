@@ -43,27 +43,31 @@ class _AISearchScreenState extends State<AISearchScreen> with SingleTickerProvid
     });
 
     try {
-      final results = await _recommendationService.findSimilarOffers(_searchController.text);
+      // استدعاء الطريقة الجديدة التي تعيد رداً نصياً ذكياً من Gemini
+      final response = await _recommendationService.findBestOfferForUser(_searchController.text);
       
       setState(() {
         _isLoading = false;
-        if (results.isNotEmpty) {
-          final bestMatch = results.first;
-          _aiResponse = "🎯 وجدنا لك المكان الأنسب:\n\n"
-              "📍 المتجر: ${bestMatch['shop_name'] ?? 'غير معروف'}\n"
-              "💰 العرض: ${bestMatch['offer'] ?? 'لا يوجد عرض حالي'}\n\n"
-              "💡 لماذا نقترحه؟\n"
-              "${bestMatch['description'] ?? 'بناءً على اهتماماتك السابقة.'}";
-        } else {
-          _aiResponse = "عذراً، لم أجد نتائج مطابقة تماماً حالياً، لكن يمكنك تجربة البحث عن كلمات أخرى مثل 'قهوة' أو 'ملابس'.";
-        }
+        _aiResponse = response;
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _aiResponse = "حدث خطأ أثناء البحث، يرجى المحاولة لاحقاً.";
+        _aiResponse = "حدث خطأ أثناء البحث الذكي، يرجى المحاولة لاحقاً.";
       });
     }
+  }
+
+  final List<String> _suggestedQueries = [
+    "☕ مكان هادئ للدراسة",
+    "🍕 عروض وجبات سريعة",
+    "👗 أزياء قريبة من سيتي سنتر",
+    "💻 لابتوب مستعمل نظيف",
+  ];
+
+  void _handleSuggestedSearch(String query) {
+    _searchController.text = query;
+    _handleSearch();
   }
 
   @override
@@ -98,7 +102,7 @@ class _AISearchScreenState extends State<AISearchScreen> with SingleTickerProvid
             ),
           
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
             child: TextField(
               controller: _searchController,
               style: const TextStyle(color: Colors.white),
@@ -121,6 +125,24 @@ class _AISearchScreenState extends State<AISearchScreen> with SingleTickerProvid
                 ),
               ),
               onSubmitted: (_) => _handleSearch(),
+            ),
+          ),
+
+          // Suggested Queries Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: _suggestedQueries.map((query) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ActionChip(
+                  label: Text(query, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  backgroundColor: Colors.white.withOpacity(0.05),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  onPressed: () => _handleSuggestedSearch(query),
+                ),
+              )).toList(),
             ),
           ),
 

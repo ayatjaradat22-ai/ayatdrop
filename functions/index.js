@@ -4,41 +4,38 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 admin.initializeApp();
 
-// ملاحظة: يفضل استخدام environment variables بدلاً من كتابة المفتاح هنا مباشرة
-// firebase functions:config:set gemini.key="YOUR_KEY"
-const API_KEY = "YOUR_GEMINI_API_KEY";
-const genAI = new GoogleGenerativeAI(API_KEY);
+// استخدام Secrets بدلاً من المفتاح المكتوب يدوياً
+// يتم ضبطه عبر: firebase functions:secrets:set GEMINI_API_KEY
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YOUR_GEMINI_API_KEY");
 
 /**
  * وظيفة تراقب إضافة أي عرض جديد وتقوم بتحويل وصفه إلى Vector
  */
 exports.generateOfferEmbedding = functions.firestore
-    .document("deals/{dealId}") // تم تغييرها لـ deals لتناسب مشروعك
+    .document("deals/{dealId}")
     .onCreate(async (snap, context) => {
         const data = snap.data();
-        
-        // نأخذ الوصف أو اسم المنتج لتحويله إلى Vector
         const textToEmbed = `${data.product || ""} ${data.description || ""} ${data.storeName || ""}`.trim();
 
-        if (textToEmbed.length === 0) {
-            console.log("No text to embed for document:", context.params.dealId);
-            return null;
-        }
+        if (textToEmbed.length === 0) return null;
 
         try {
-            const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-            const result = await model.embedContent(textToEmbed);
+            // هنا نستخدم موديل التوليد إذا أردنا تحليل النص، أو نبقي موديل الـ embedding للبحث
+            // لكن حسب تعليماتك، التأكد من وجود gemini-1.5-flash في المشروع:
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+            // إذا كنتِ تقصدين الـ Embedding تحديداً للبحث، نستخدم text-embedding-004
+            // وإذا كنتِ تقصدين المحادثة، نستخدم gemini-1.5-flash
+            const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+            const result = await embeddingModel.embedContent(textToEmbed);
             const embedding = result.embedding.values;
 
-            console.log(`Successfully generated embedding for deal: ${context.params.dealId}`);
-
-            // تحديث المستند بإضافة حقل الـ embedding كـ VectorValue
             return snap.ref.update({
                 embedding: admin.firestore.FieldValue.vector(embedding),
                 lastUpdated: admin.firestore.FieldValue.serverTimestamp()
             });
         } catch (error) {
-            console.error("Embedding Generation Error:", error);
+            console.error("Gemini Error:", error);
             return null;
         }
     });

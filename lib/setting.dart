@@ -155,6 +155,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   _buildThemeCard(AppTheme.forest, "theme_forest".tr(), const Color(0xFFF1F8E9), const Color(0xFF2E7D32)),
                   _buildThemeCard(AppTheme.purple, "theme_purple".tr(), const Color(0xFF120024), const Color(0xFF4A148C)),
                   _buildThemeCard(AppTheme.pink, "theme_pink".tr(), const Color(0xFFFFF1F6), const Color(0xFFE91E63)),
+                  _buildThemeCard(AppTheme.coffee, "theme_coffee".tr(), const Color(0xFFFAF3E0), const Color(0xFF6F4E37)),
                 ],
               ),
             ),

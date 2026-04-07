@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:typed_data';
 import 'premium.dart';
 
@@ -31,9 +32,13 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
   }
 
   void _initModel() {
+    final apiKey = dotenv.get('GEMINI_API_KEY', fallback: '');
+    if (apiKey.isEmpty) {
+      debugPrint("⚠️ Warning: GEMINI_API_KEY is missing in .env file");
+    }
     _model = GenerativeModel(
-      model: 'gemini-1.5-flash',
-      apiKey: 'AIzaSyDiRLy_nojY1ZrqusBTbJynun-oGahQIR0',
+      model: 'gemini-1.5-flash', // توحيد المسمى مع الملف الآخر
+      apiKey: apiKey,
     );
   }
 
@@ -100,6 +105,7 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
     setState(() => _isTyping = true);
 
     try {
+      // 1. Save user message
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(currentUser!.uid)
@@ -110,8 +116,24 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      final content = [Content.text(userMessage)];
-      final response = await _model.generateContent(content);
+      // 2. Fetch context (Deals) to make the AI smart about your app
+      final dealsSnapshot = await FirebaseFirestore.instance.collection('deals').limit(5).get();
+      final dealsContext = dealsSnapshot.docs.map((d) {
+        final data = d.data();
+        return "- ${data['product']} في ${data['storeName']}: ${data['description']}";
+      }).join("\n");
+
+      final prompt = """
+أنت مساعد "Drop AI". مهمتك مساعدة المستخدم في العثور على أفضل العروض في إربد.
+العروض الحالية المتاحة:
+$dealsContext
+
+سؤال المستخدم: "$userMessage"
+
+أجب بلهجة أردنية ودودة ووجه المستخدم لأفضل الخيارات بناءً على العروض المذكورة أعلاه.
+""";
+
+      final response = await _model.generateContent([Content.text(prompt)]);
 
       if (response.text != null) {
         await _saveAiResponse(response.text!);
@@ -258,13 +280,53 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
   }
 
   Widget _buildWelcomeState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(30.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: dropRed.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.auto_awesome, size: 60, color: dropRed),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "ai_title".tr(),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "ai_no_messages".tr(),
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              _buildFeatureInfo(Icons.local_offer, "ابحث عن أفضل الخصومات في إربد"),
+              _buildFeatureInfo(Icons.camera_alt, "حلل صور العروض والمنشورات"),
+              _buildFeatureInfo(Icons.map, "اسأل عن أقرب المحلات الموفرة لك"),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureInfo(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
         children: [
-          Icon(Icons.chat_bubble_outline_rounded, size: 80, color: Colors.grey.withOpacity(0.2)),
-          const SizedBox(height: 15),
-          Text("ai_no_messages".tr(), style: TextStyle(color: Colors.grey.withOpacity(0.5), fontSize: 16)),
+          Icon(icon, size: 20, color: dropRed),
+          const SizedBox(width: 15),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 14, color: Colors.grey))),
         ],
       ),
     );

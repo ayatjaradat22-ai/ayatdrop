@@ -1,11 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
+import 'recommendation_service.dart';
 
-class TenJdChallengeScreen extends StatelessWidget {
+class TenJdChallengeScreen extends StatefulWidget {
   const TenJdChallengeScreen({super.key});
 
+  @override
+  State<TenJdChallengeScreen> createState() => _TenJdChallengeScreenState();
+}
+
+class _TenJdChallengeScreenState extends State<TenJdChallengeScreen> {
   static const Color dropRed = Color(0xFFFF1111);
+  late RecommendationService _recommendationService;
+  String _aiSuggestion = "";
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _recommendationService = RecommendationService(apiKey: dotenv.get('GEMINI_API_KEY'));
+  }
+
+  Future<void> _getAiPlan() async {
+    setState(() {
+      _isLoading = true;
+      _aiSuggestion = "";
+    });
+
+    try {
+      // 1. Fetch deals under 10 JD
+      final snapshot = await FirebaseFirestore.instance
+          .collection('deals')
+          .get();
+      
+      final deals = snapshot.docs
+          .map((doc) => {...doc.data(), 'id': doc.id})
+          .where((d) {
+            final price = double.tryParse(d['newPrice']?.toString() ?? d['price']?.toString() ?? "0") ?? 0;
+            return price > 0 && price <= 10;
+          })
+          .toList();
+
+      if (deals.isEmpty) {
+        setState(() {
+          _aiSuggestion = "للأسف ما لقيت عروض أقل من 10 دنانير حالياً، خليك متابعنا!";
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 2. Get AI Suggestion
+      final suggestion = await _recommendationService.getTenJdChallengeSuggestion(deals);
+
+      setState(() {
+        _aiSuggestion = suggestion;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _aiSuggestion = "حدث خطأ أثناء طلب الاقتراح الذكي. جرب مرة ثانية.";
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +88,58 @@ class TenJdChallengeScreen extends StatelessWidget {
           children: [
             _buildHeroSection(),
             const SizedBox(height: 20),
-            _buildChallengeGrid(),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(40.0),
+                child: Center(child: CircularProgressIndicator(color: Colors.green)),
+              )
+            else if (_aiSuggestion.isNotEmpty)
+              _buildAiResponseCard()
+            else
+              _buildChallengeGrid(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAiResponseCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.green.withOpacity(0.3), width: 1.5),
+        boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 15)],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.green),
+              const SizedBox(width: 10),
+              Text("اقتراح Drop الذكي", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700)),
+            ],
+          ),
+          const Divider(height: 30),
+          AnimatedTextKit(
+            animatedTexts: [
+              TypewriterAnimatedText(
+                _aiSuggestion,
+                textStyle: const TextStyle(fontSize: 16, height: 1.6),
+                speed: const Duration(milliseconds: 30),
+              ),
+            ],
+            isRepeatingAnimation: false,
+          ),
+          const SizedBox(height: 20),
+          TextButton.icon(
+            onPressed: () => setState(() => _aiSuggestion = ""),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text("عرض العروض العادية"),
+          )
+        ],
       ),
     );
   }
@@ -58,6 +167,24 @@ class TenJdChallengeScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.green.shade700,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            onPressed: _getAiPlan,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.auto_awesome),
+                const SizedBox(width: 10),
+                const Text("خططلي بـ 10 دنانير", style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -78,7 +205,7 @@ class TenJdChallengeScreen extends StatelessWidget {
 
         for (var doc in allDeals) {
           final data = doc.data() as Map<String, dynamic>;
-          final price = double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
+          final price = double.tryParse(data['newPrice']?.toString() ?? data['price']?.toString() ?? "0") ?? 0;
 
           if (price > 0 && price <= 10) {
             if (currentTotal + price <= 10) {
@@ -114,7 +241,7 @@ class TenJdChallengeScreen extends StatelessWidget {
     double total = 0;
     for (var item in items) {
       final data = item.data() as Map<String, dynamic>;
-      total += double.tryParse(data['newPrice']?.toString() ?? "0") ?? 0;
+      total += double.tryParse(data['newPrice']?.toString() ?? data['price']?.toString() ?? "0") ?? 0;
     }
 
     return Container(
@@ -137,7 +264,7 @@ class TenJdChallengeScreen extends StatelessWidget {
                 decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
                 child: Text("items_bundle".tr(args: [items.length.toString()]), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
-              Text("< 10 JOD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700)),
+              Text("${total.toStringAsFixed(2)} JOD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700)),
             ],
           ),
           const SizedBox(height: 15),
@@ -145,7 +272,7 @@ class TenJdChallengeScreen extends StatelessWidget {
             final data = item.data() as Map<String, dynamic>;
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
-              child: _buildItemRow(data['storeName'] ?? "Store", data['product'] ?? "Item", data['newPrice']?.toString() ?? "0"),
+              child: _buildItemRow(data['storeName'] ?? "Store", data['product'] ?? "Item", data['newPrice']?.toString() ?? data['price']?.toString() ?? "0"),
             );
           }).toList(),
           const Divider(),
@@ -173,7 +300,7 @@ class TenJdChallengeScreen extends StatelessWidget {
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: const TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color),
               children: [
                 TextSpan(text: "$product ", style: const TextStyle(fontWeight: FontWeight.bold)),
                 TextSpan(text: "from_store".tr(args: [store]), style: const TextStyle(color: Colors.grey)),
