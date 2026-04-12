@@ -8,7 +8,7 @@ import 'dart:ui' as ui;
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'premium.dart';
-import 'app_colors.dart';
+import 'theme/app_colors.dart';
 
 class MapScreen extends StatefulWidget {
   final LatLng? targetLocation;
@@ -76,7 +76,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
       if (permission == LocationPermission.deniedForever) return;
 
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
       if (mounted) {
         setState(() {
           _userPosition = position;
@@ -95,6 +97,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final Uri geoUrl = Uri.parse("geo:$lat,$lng?q=$lat,$lng");
     final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       if (await canLaunchUrl(geoUrl)) {
         await launchUrl(geoUrl);
@@ -103,8 +106,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("error_occurred".tr() + ": $e"), backgroundColor: Colors.red),
+        messenger.showSnackBar(
+          SnackBar(content: Text("error_occurred".tr(args: [e.toString()])), backgroundColor: Colors.red),
         );
       }
     }
@@ -119,7 +122,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       storeLng,
     );
     double distanceInKm = distanceInMeters / 1000;
-    return distanceInKm.toStringAsFixed(1) + " " + "km_unit".tr();
+    return "${distanceInKm.toStringAsFixed(1)} ${"km_unit".tr()}";
   }
 
   @override
@@ -167,7 +170,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                           color: Colors.blue,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10)],
+                          boxShadow: [BoxShadow(color: Colors.blue.withValues(alpha: 0.3), blurRadius: 10)],
                         ),
                       ),
                     ),
@@ -258,7 +261,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   decoration: BoxDecoration(
                     color: AppColors.dropRed,
                     borderRadius: BorderRadius.circular(10),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
                   ),
                   child: Text(
                     category.tr(),
@@ -277,7 +280,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         return Transform.scale(
                           scale: 1.0 + (_fireAnimationController.value * 0.25),
                           child: Icon(Icons.local_fire_department_rounded,
-                              color: Colors.orange.withOpacity(0.8 - (_fireAnimationController.value * 0.4)),
+                              color: Colors.orange.withValues(alpha: 0.8 - (_fireAnimationController.value * 0.4)),
                               size: 75),
                         );
                       },
@@ -292,7 +295,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: hasHotDeal ? Colors.orange : AppColors.dropRed, width: 2),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 4))],
                     ),
                     child: CircleAvatar(
                       radius: 25,
@@ -320,7 +323,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 margin: const EdgeInsets.only(top: 2),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 width: 80,
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(5)),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(5)),
                 child: Text(
                   storeName,
                   maxLines: 1,
@@ -461,7 +464,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isFollowing ? (isDark ? Colors.white12 : Colors.grey[200]) : AppColors.dropRed.withOpacity(0.1),
+                  backgroundColor: isFollowing ? (isDark ? Colors.white12 : Colors.grey[200]) : AppColors.dropRed.withValues(alpha: 0.1),
                   foregroundColor: isFollowing ? (isDark ? Colors.white : Colors.black) : AppColors.dropRed,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -530,16 +533,16 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isHot ? Colors.orange.withOpacity(isDark ? 0.1 : 0.05) : Theme.of(context).cardColor,
+        color: isHot ? Colors.orange.withValues(alpha: isDark ? 0.1 : 0.05) : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: isHot ? Colors.orange.withOpacity(0.3) : (isDark ? Colors.white10 : Colors.grey.shade100), width: isHot ? 1.5 : 1),
+        border: Border.all(color: isHot ? Colors.orange.withValues(alpha: 0.3) : (isDark ? Colors.white10 : Colors.grey.shade100), width: isHot ? 1.5 : 1),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: isHot ? Colors.orange.withOpacity(0.2) : AppColors.dropRed.withOpacity(0.1),
+                color: isHot ? Colors.orange.withValues(alpha: 0.2) : AppColors.dropRed.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10)
             ),
             child: Icon(
@@ -593,9 +596,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   height: 55,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor.withOpacity(0.8),
+                    color: Theme.of(context).cardColor.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isDark ? Colors.white10 : Colors.white.withOpacity(0.3)),
+                    border: Border.all(color: isDark ? Colors.white10 : Colors.white.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -653,7 +656,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             _selectedCategory = category;
           });
         },
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.grey.withOpacity(0.2))),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
       ),
     );
   }

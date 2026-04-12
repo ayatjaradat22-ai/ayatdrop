@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -42,13 +42,20 @@ void main() async {
   }
 
   final prefs = await SharedPreferences.getInstance();
-  final String themeName = prefs.getString('app_theme') ?? 'light';
+  final String? themeName = prefs.getString('app_theme');
   
-  // التأكد من استخدام AppTheme من الملف الجديد
-  AppTheme savedTheme = AppTheme.values.firstWhere(
-    (e) => e.name == themeName, 
-    orElse: () => AppTheme.light
-  );
+  // Robust fallback logic for legacy theme strings to prevent crashes
+  AppTheme savedTheme = AppTheme.light;
+  if (themeName != null) {
+    try {
+      savedTheme = AppTheme.values.firstWhere(
+        (e) => e.name == themeName, 
+        orElse: () => AppTheme.light
+      );
+    } catch (_) {
+      savedTheme = AppTheme.light;
+    }
+  }
 
   runApp(
     EasyLocalization(

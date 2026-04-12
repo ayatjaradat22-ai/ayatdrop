@@ -139,7 +139,7 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: TextField(
@@ -209,7 +209,7 @@ class _SmartShoppingListScreenState extends State<SmartShoppingListScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
       ),

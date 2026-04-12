@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'app_colors.dart';
+import 'theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StoreProfileScreen extends StatelessWidget {

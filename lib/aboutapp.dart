@@ -92,7 +92,7 @@ class AboutAppScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: dropRed.withOpacity(0.3),
+            color: dropRed.withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -126,7 +126,7 @@ class AboutAppScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
             ),
@@ -154,7 +154,7 @@ class AboutAppScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: dropRed.withOpacity(0.2),
+            color: dropRed.withValues(alpha: 0.2),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),

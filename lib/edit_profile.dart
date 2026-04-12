@@ -109,7 +109,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text("تنبيه"),
-            content: Text("حدث خطأ أثناء الحفظ، يرجى التأكد من حجم الصورة المحملة."),
+            content: const Text("حدث خطأ أثناء الحفظ، يرجى التأكد من حجم الصورة المحملة."),
             actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("حسناً"))],
           ),
         );

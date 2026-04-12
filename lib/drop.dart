@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'forgot_password.dart';
 import 'signup.dart';
 import 'home.dart';
 import 'store_login.dart';
@@ -23,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> loginUser() async {
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("fill_all_fields_error".tr()), backgroundColor: Colors.red),
       );
@@ -42,17 +42,17 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true).pop();
 
-      // تم حذف const هنا لأن MainWrapper ليس ثابتاً
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MainWrapper()),
+        MaterialPageRoute(builder: (context) => const MainWrapper()),
       );
 
     } on FirebaseAuthException catch (e) {
-      if (mounted) Navigator.of(context).pop();
-      String message = "login_failed".tr() + ": ${e.message}";
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      String message = "${"login_failed".tr()}: ${e.message}";
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
     }
   }
@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(child: Image.asset("images/sign_in_screan.png", fit: BoxFit.cover)),
+          Positioned.fill(child: Image.asset("images/sign_in_screen.png", fit: BoxFit.cover)),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -81,9 +81,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(25),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(30),
-                              border: Border.all(color: Colors.white.withOpacity(0.2)),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                             ),
                             child: Column(
                               children: [
@@ -115,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text("signup_prompt".tr() + " "),
+                                      Text("${"signup_prompt".tr()} "),
                                       Text("signup_action".tr(), style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
@@ -126,10 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.8),
+                                      color: Colors.white.withValues(alpha: 0.8),
                                       shape: BoxShape.circle,
                                       boxShadow: [
-                                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
                                       ],
                                     ),
                                     child: const Icon(Icons.storefront_rounded, color: dropRed, size: 30),
@@ -159,9 +159,9 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: Colors.black87),
         suffixIcon: suffix, hintText: hint, filled: true,
-        fillColor: Colors.white.withOpacity(0.6),
+        fillColor: Colors.white.withValues(alpha: 0.6),
         counterText: "",
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(15)), borderSide: BorderSide.none),
       ),
     );
   }

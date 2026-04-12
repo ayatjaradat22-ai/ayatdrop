@@ -100,7 +100,7 @@ class _StoreRegistrationScreenState extends State<StoreRegistrationScreen> {
 
   Widget _buildField(TextEditingController controller, String hint, IconData icon, {bool isPass = false}) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
       child: TextField(controller: controller, obscureText: isPass, decoration: InputDecoration(prefixIcon: Icon(icon, color: Colors.grey[400]), hintText: hint, border: InputBorder.none, contentPadding: const EdgeInsets.all(18))),
     );
   }

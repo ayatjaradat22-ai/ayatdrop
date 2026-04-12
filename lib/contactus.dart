@@ -8,7 +8,6 @@ class ContactUsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.isDarkMode(context);
     final primaryColor = AppColors.getPrimaryColor(context);
 
     return Scaffold(
@@ -35,7 +34,7 @@ class ContactUsScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(25),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.05),
+                  color: primaryColor.withValues(alpha: 0.05),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.headset_mic_rounded, color: primaryColor, size: 60),
@@ -87,7 +86,6 @@ class ContactUsScreen extends StatelessWidget {
   }
 
   Widget _buildContactTile(BuildContext context, IconData icon, String title, String subtitle, Color iconColor, VoidCallback onTap) {
-    final isDark = AppColors.isDarkMode(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
@@ -101,7 +99,7 @@ class ContactUsScreen extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12)
           ),
           child: Icon(icon, color: iconColor, size: 24),

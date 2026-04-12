@@ -70,7 +70,7 @@ class ApplePayScreen extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 25,
             offset: const Offset(0, 12),
           ),
@@ -81,7 +81,7 @@ class ApplePayScreen extends StatelessWidget {
           Positioned(
             right: -20,
             bottom: -20,
-            child: Icon(Icons.apple, size: 150, color: Colors.white.withOpacity(0.05)),
+            child: Icon(Icons.apple, size: 150, color: Colors.white.withValues(alpha: 0.05)),
           ),
           Padding(
             padding: const EdgeInsets.all(30.0),

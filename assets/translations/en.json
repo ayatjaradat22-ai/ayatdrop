@@ -53,6 +53,9 @@
   "email_address_label": "Email Address",
   "save_changes_button": "SAVE CHANGES",
   "profile_updated_success": "Profile updated successfully!",
+  "email_already_used": "This email is already in use",
+  "invalid_email_format": "Invalid email format",
+  "password_too_short": "Password must be at least 6 characters",
   "error_occurred": "An error occurred",
   "signup_title": "Create Account",
   "full_name_hint": "Full Name",
@@ -316,9 +319,12 @@
   "customize_app_appearance": "Customize app appearance as you like",
   "themes_premium_desc": "Changing themes is a Premium-only feature.",
   "theme_light": "Light Mode",
-  "theme_dark": "Dark Mode",
-  "theme_midnight": "Midnight",
-  "theme_forest": "Forest",
-  "theme_purple": "Purple",
-  "theme_pink": "Cute Pink"
+  "theme_navy_white": "Navy & White",
+  "theme_purple_blue": "Purple & Blue",
+  "theme_forest": "Forest Green",
+  "theme_pink": "Soft Pink",
+  "theme_brown": "Earthly Brown",
+  "theme_orange_white": "Orange & White",
+  "share_app_text": "Hey! Check out Drop App to find the best deals and sales in Jordan! 🇯🇴💰\n\nDownload it now and start saving!",
+  "share_app_subject": "Save money with Drop App!"
 }

@@ -227,7 +227,7 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       debugPrint("Firestore Stream Error: ${snapshot.error}");
-                      return Center(child: Text("Check your internet or Firebase Rules"));
+                      return const Center(child: Text("Check your internet or Firebase Rules"));
                     }
                     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: dropRed));
                     final docs = snapshot.data!.docs;
@@ -262,9 +262,9 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline_rounded, size: 80, color: Colors.grey.withOpacity(0.2)),
+          Icon(Icons.chat_bubble_outline_rounded, size: 80, color: Colors.grey.withValues(alpha: 0.2)),
           const SizedBox(height: 15),
-          Text("ai_no_messages".tr(), style: TextStyle(color: Colors.grey.withOpacity(0.5), fontSize: 16)),
+          Text("ai_no_messages".tr(), style: TextStyle(color: Colors.grey.withValues(alpha: 0.5), fontSize: 16)),
         ],
       ),
     );
@@ -290,7 +290,7 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
               label: Text(suggestions[index], style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color)),
               backgroundColor: Theme.of(context).cardColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              side: BorderSide(color: Colors.grey.withOpacity(0.1)),
+              side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
               onPressed: () => _sendMessage(suggestions[index]),
             ),
           );
@@ -334,7 +334,7 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor, 
-        border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.1)))
+        border: Border(top: BorderSide(color: Colors.grey.withValues(alpha: 0.1)))
       ),
       child: Row(
         children: [
@@ -350,7 +350,7 @@ class _AiGuideScreenState extends State<AiGuideScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor, 
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.grey.withOpacity(0.1))
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1))
               ),
               child: TextField(
                 controller: _messageController,

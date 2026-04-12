@@ -111,12 +111,12 @@ class _DiscountScreenState extends State<DiscountScreen> {
         color: widget.isPremium ? const Color(0xFF1E1E1E) : (isDark ? const Color(0xFF1E1E1E) : Colors.grey[50]),
         borderRadius: BorderRadius.circular(40),
         border: Border.all(
-          color: widget.isPremium ? goldAccent.withOpacity(0.5) : (isDark ? Colors.white10 : Colors.grey.shade200),
+          color: widget.isPremium ? goldAccent.withValues(alpha: 0.5) : (isDark ? Colors.white10 : Colors.grey.shade200),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.isPremium ? goldAccent.withOpacity(0.05) : (isDark ? Colors.black26 : Colors.black.withOpacity(0.05)),
+            color: widget.isPremium ? goldAccent.withValues(alpha: 0.05) : (isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.05)),
             blurRadius: 30,
             offset: const Offset(0, 15),
           )
@@ -165,7 +165,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: widget.isPremium ? goldAccent.withOpacity(0.1) : dropRed.withOpacity(0.05),
+        color: widget.isPremium ? goldAccent.withValues(alpha: 0.1) : dropRed.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Row(
@@ -242,7 +242,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: (widget.isPremium ? goldAccent : dropRed).withOpacity(0.3),
+              color: (widget.isPremium ? goldAccent : dropRed).withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             )

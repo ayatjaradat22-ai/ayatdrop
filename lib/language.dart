@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'app_colors.dart';
+import 'theme/app_colors.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -94,7 +94,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isSelected ? 0.1 : 0.05),
+              color: Colors.black.withValues(alpha: isSelected ? 0.1 : 0.05),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -141,7 +141,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
-                color: isSelected ? AppColors.dropRed.withOpacity(0.7) : Colors.grey,
+                color: isSelected ? AppColors.dropRed.withValues(alpha: 0.7) : Colors.grey,
               ),
             ),
           ],

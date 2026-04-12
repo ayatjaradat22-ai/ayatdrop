@@ -78,9 +78,9 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark ? Colors.blue.withOpacity(0.1) : Colors.blue.withOpacity(0.05),
+                color: isDark ? Colors.blue.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: [
@@ -105,7 +105,7 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: TextField(
@@ -164,7 +164,7 @@ class _AlertMeScreenState extends State<AlertMeScreen> {
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
                       ),

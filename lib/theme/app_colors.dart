@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 
-enum AppTheme { light, dark, midnight, forest, purple, pink }
+enum AppTheme { light, navyWhite, purpleBlue, forest, pink, brown, orangeWhite }
 
 class AppColors {
   static const Color dropRed = Color(0xFFFF1111);
   static const Color goldColor = Color(0xFFFFD700);
   static const Color premiumBlack = Color(0xFF121212);
+  static const Color navyColor = Color(0xFF001F3F); // كحلي ملكي
 
   static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,
@@ -17,22 +18,37 @@ class AppColors {
     dividerColor: Colors.grey[300],
   );
 
-  static final ThemeData darkTheme = ThemeData(
+  // 1. ثيم كحلي وأبيض (Navy & White) - ثيم فاتح وأنيق
+  static final ThemeData navyWhiteTheme = ThemeData(
     useMaterial3: true,
-    brightness: Brightness.dark,
-    colorScheme: ColorScheme.fromSeed(seedColor: dropRed, primary: dropRed, brightness: Brightness.dark),
-    scaffoldBackgroundColor: premiumBlack,
-    cardColor: const Color(0xFF1E1E1E),
-    dividerColor: Colors.grey[800],
+    brightness: Brightness.light,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: navyColor, 
+      primary: navyColor,
+      secondary: Colors.white
+    ),
+    scaffoldBackgroundColor: Colors.white,
+    cardColor: Colors.white,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: navyColor,
+      foregroundColor: Colors.white,
+    ),
+    dividerColor: navyColor.withValues(alpha: 0.1),
   );
 
-  static final ThemeData midnightTheme = ThemeData(
+  // 2. ثيم نهدي وأزرق (Purple & Blue) - ثيم داكن وعصري
+  static final ThemeData purpleBlueTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A237E), primary: const Color(0xFF5C6BC0), brightness: Brightness.dark),
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: Colors.purple, 
+      primary: const Color(0xFF9C27B0), // نهدي
+      secondary: const Color(0xFF64B5F6), // أزرق فاتح (Blue 300)
+      brightness: Brightness.dark,
+    ),
     scaffoldBackgroundColor: const Color(0xFF0A0E14),
     cardColor: const Color(0xFF151921),
-    dividerColor: Colors.white10,
+    dividerColor: Colors.blue.withValues(alpha: 0.2),
   );
 
   static final ThemeData forestTheme = ThemeData(
@@ -44,32 +60,51 @@ class AppColors {
     dividerColor: const Color(0xFFE0F2F1),
   );
 
-  static final ThemeData purpleTheme = ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.dark,
-    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6A1B9A), primary: const Color(0xFFCE93D8), brightness: Brightness.dark),
-    scaffoldBackgroundColor: const Color(0xFF120024),
-    cardColor: const Color(0xFF1E0036),
-    dividerColor: Colors.purple.withOpacity(0.1),
-  );
-
   static final ThemeData pinkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE91E63), primary: const Color(0xFFF06292)),
     scaffoldBackgroundColor: const Color(0xFFFFF1F6),
     cardColor: Colors.white,
-    dividerColor: Colors.pink.withOpacity(0.1),
+    dividerColor: Colors.pink.withValues(alpha: 0.1),
+  );
+
+  static final ThemeData brownTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF795548), primary: const Color(0xFF795548)),
+    scaffoldBackgroundColor: const Color(0xFFEFEBE9),
+    cardColor: Colors.white,
+    dividerColor: const Color(0xFFD7CCC8),
+  );
+
+  // 6. ثيم برتقالي وأبيض (Orange & White)
+  static final ThemeData orangeWhiteTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: Colors.orange, 
+      primary: Colors.orange,
+      secondary: Colors.white
+    ),
+    scaffoldBackgroundColor: Colors.white,
+    cardColor: Colors.white,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.orange,
+      foregroundColor: Colors.white,
+    ),
+    dividerColor: Colors.orange.withValues(alpha: 0.1),
   );
 
   static ThemeData getTheme(AppTheme theme) {
     switch (theme) {
       case AppTheme.light: return lightTheme;
-      case AppTheme.dark: return darkTheme;
-      case AppTheme.midnight: return midnightTheme;
+      case AppTheme.navyWhite: return navyWhiteTheme;
+      case AppTheme.purpleBlue: return purpleBlueTheme;
       case AppTheme.forest: return forestTheme;
-      case AppTheme.purple: return purpleTheme;
       case AppTheme.pink: return pinkTheme;
+      case AppTheme.brown: return brownTheme;
+      case AppTheme.orangeWhite: return orangeWhiteTheme;
     }
   }
 
@@ -79,19 +114,19 @@ class AppColors {
   static Color getSecondaryTextColor(BuildContext context) => isDarkMode(context) ? Colors.white70 : Colors.grey[700]!;
   static Color getSubtitleColor(BuildContext context) => getSecondaryTextColor(context);
   static Color getScaffoldBackground(BuildContext context) => Theme.of(context).scaffoldBackgroundColor;
-  static Color getSecondaryBackground(BuildContext context) => isDarkMode(context) ? Colors.white.withOpacity(0.05) : Colors.grey[100]!;
+  static Color getSecondaryBackground(BuildContext context) => isDarkMode(context) ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]!;
   static Color getCardBackground(BuildContext context, {bool isSelected = false}) {
-    if (isSelected) return getPrimaryColor(context).withOpacity(0.1);
+    if (isSelected) return getPrimaryColor(context).withValues(alpha: 0.1);
     return Theme.of(context).cardColor;
   }
   static Color getHintTextColor(BuildContext context) => isDarkMode(context) ? Colors.white38 : Colors.grey[500]!;
-  static Color getHotDealBackground(BuildContext context) => Colors.orange.withOpacity(isDarkMode(context) ? 0.1 : 0.05);
-  static Color getSavingsCardBackground(BuildContext context) => isDarkMode(context) ? Colors.green.withOpacity(0.1) : const Color(0xFFF1F8E9).withOpacity(0.3);
+  static Color getHotDealBackground(BuildContext context) => Colors.orange.withValues(alpha: isDarkMode(context) ? 0.1 : 0.05);
+  static Color getSavingsCardBackground(BuildContext context) => isDarkMode(context) ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFF1F8E9).withValues(alpha: 0.3);
   
   static List<BoxShadow> getCommonShadow(BuildContext context) {
     return [
       BoxShadow(
-        color: Colors.black.withOpacity(isDarkMode(context) ? 0.3 : 0.05),
+        color: Colors.black.withValues(alpha: isDarkMode(context) ? 0.3 : 0.05),
         blurRadius: 10,
         offset: const Offset(0, 4),
       ),
@@ -101,8 +136,8 @@ class AppColors {
   static List<BoxShadow> getNeumorphicShadow(BuildContext context) {
     final isDark = isDarkMode(context);
     return [
-      BoxShadow(color: isDark ? Colors.white.withOpacity(0.02) : Colors.white, blurRadius: 15, offset: const Offset(-8, -8)),
-      BoxShadow(color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.12), blurRadius: 15, offset: const Offset(8, 8)),
+      BoxShadow(color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white, blurRadius: 15, offset: const Offset(-8, -8)),
+      BoxShadow(color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.12), blurRadius: 15, offset: const Offset(8, 8)),
     ];
   }
   
@@ -131,7 +166,7 @@ class AppColors {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF222222) : Colors.white,
             borderRadius: BorderRadius.circular(35),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

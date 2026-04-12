@@ -65,14 +65,15 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
         }
       }
 
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      
-      setState(() {
-        latController.text = position.latitude.toString();
-        lngController.text = position.longitude.toString();
-      });
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
       
       if (mounted) {
+        setState(() {
+          latController.text = position.latitude.toString();
+          lngController.text = position.longitude.toString();
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("location_success".tr()), backgroundColor: Colors.green)
         );
@@ -146,6 +147,8 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
 
       DateTime expiryDate = DateTime.now().add(const Duration(days: 30));
 
+      if (uid.isEmpty) return; // Basic sanity check
+
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': nameController.text.trim(),
         'email': emailController.text.trim(),
@@ -172,7 +175,9 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
         MaterialPageRoute(builder: (context) => const MainWrapper(initialIndex: 0)),
       );
     } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? "error_occurred".tr());
+      if (mounted) {
+        _showError(e.message ?? "error_occurred".tr());
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -370,7 +375,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: TextField(
         controller: controller,
@@ -378,7 +383,7 @@ class _StoreSignUpScreenState extends State<StoreSignUpScreen> {
         keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
         decoration: InputDecoration(
           hintText: hint,
-          prefixIcon: Icon(icon, color: dropRed.withOpacity(0.7), size: 20),
+          prefixIcon: Icon(icon, color: dropRed.withValues(alpha: 0.7), size: 20),
           suffixIcon: isPassword ? IconButton(icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off, size: 18, color: Colors.grey), onPressed: onToggle) : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

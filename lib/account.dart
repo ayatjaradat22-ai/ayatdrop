@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:share_plus/share_plus.dart';
 import 'setting.dart';
 import 'order_history.dart';
 import 'payment_methods.dart';
 import 'edit_profile.dart';
 import 'saved_addresses.dart';
-import 'FAQ.dart';
+import 'faq.dart';
 import 'contactus.dart';
 import 'saved_stores.dart';
 import 'premium.dart';
 import 'store_home.dart';
 import 'store_login.dart';
-import 'app_colors.dart';
+import 'theme/app_colors.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -130,6 +131,10 @@ class _AccountScreenState extends State<AccountScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingScreen()));
                 }),
 
+                _buildActionCard("share_app_subject".tr(), Icons.share_rounded, primaryColor, () {
+                  _shareApp();
+                }),
+
                 const SizedBox(height: 40),
 
                 SizedBox(
@@ -218,7 +223,7 @@ class _AccountScreenState extends State<AccountScreen> {
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
+          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
         ),
         child: Text(
           label,
@@ -263,7 +268,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   image: imageProvider != null 
                     ? DecorationImage(image: imageProvider, fit: BoxFit.cover) 
                     : null,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10)],
                 ),
                 child: (imageProvider == null)
                   ? Icon(Icons.person, color: primaryColor, size: 50) 
@@ -297,14 +302,14 @@ class _AccountScreenState extends State<AccountScreen> {
           image: AssetImage("images/splash_screen.png"),
           fit: BoxFit.cover,
         ),
-        boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: primaryColor.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(25),
           gradient: LinearGradient(
-            colors: [Colors.black.withOpacity(0.8), Colors.black.withOpacity(0.4)],
+            colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
             begin: Alignment.bottomRight,
             end: Alignment.topLeft,
           ),
@@ -315,9 +320,9 @@ class _AccountScreenState extends State<AccountScreen> {
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.goldColor.withOpacity(0.2),
+              color: AppColors.goldColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.goldColor.withOpacity(0.5), width: 1),
+              border: Border.all(color: AppColors.goldColor.withValues(alpha: 0.5), width: 1),
             ),
             child: Icon(icon, color: AppColors.goldColor, size: 28),
           ),
@@ -326,6 +331,17 @@ class _AccountScreenState extends State<AccountScreen> {
           trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.goldColor, size: 16),
         ),
       ),
+    );
+  }
+
+  void _shareApp() {
+    final String text = "share_app_text".tr();
+    final String subject = "share_app_subject".tr();
+    final box = context.findRenderObject() as RenderBox?;
+    Share.share(
+      text, 
+      subject: subject,
+      sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
     );
   }
 
@@ -339,12 +355,19 @@ class _AccountScreenState extends State<AccountScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: Text("cancel_button".tr())),
           TextButton(
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (!mounted) return;
-              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const StoreLoginScreen()),
-                (route) => false,
-              );
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context, rootNavigator: true);
+              try {
+                await FirebaseAuth.instance.signOut();
+                navigator.pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const StoreLoginScreen()),
+                  (route) => false,
+                );
+              } catch (e) {
+                if (navigator.mounted) {
+                  messenger.showSnackBar(SnackBar(content: Text("error_occurred".tr(args: [e.toString()]))));
+                }
+              }
             },
             child: Text("logout_button".tr(), style: const TextStyle(color: Colors.red)),
           ),

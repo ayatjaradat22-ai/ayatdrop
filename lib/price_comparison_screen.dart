@@ -33,7 +33,7 @@ class _PriceComparisonScreenState extends State<PriceComparisonScreen> {
   }
 
   void _addItem() {
-    if (!_isPremium && _shoppingCart.length >= 1) {
+    if (!_isPremium && _shoppingCart.isNotEmpty) {
       _showPremiumRequiredDialog();
       return;
     }
@@ -163,7 +163,7 @@ class _PriceComparisonScreenState extends State<PriceComparisonScreen> {
               margin: const EdgeInsets.only(bottom: 15),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isBest ? Colors.green.withOpacity(0.05) : Colors.white,
+                color: isBest ? Colors.green.withValues(alpha: 0.05) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: isBest ? Colors.green : Colors.grey.shade200),
               ),

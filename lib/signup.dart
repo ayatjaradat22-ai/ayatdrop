@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'database_service.dart';
 import 'home.dart';
-import 'app_colors.dart';
+import 'theme/app_colors.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -78,23 +78,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // تم حذف const هنا أيضاً
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MainWrapper()),
+        MaterialPageRoute(builder: (context) => const MainWrapper()),
       );
 
     } on FirebaseAuthException catch (e) {
-      if (mounted) Navigator.pop(context);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // التأكد من إغلاق الـ Dialog تحديداً
       String errorMessage = "error_occurred".tr();
       if (e.code == 'email-already-in-use') {
         errorMessage = "email_already_used".tr();
       }
       _showSnackBar(errorMessage);
     } catch (e) {
-      if (mounted) Navigator.pop(context);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
       _showSnackBar(e.toString());
     }
   }
 
   void _showSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.dropRed),
     );
@@ -120,9 +123,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(25),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: Colors.white.withOpacity(0.3)),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
                           ),
                           child: Column(
                             children: [
@@ -165,7 +168,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Widget _buildModernField(TextEditingController controller, String hint, IconData icon, {bool isPass = false, Widget? suffix, int? limit, List<TextInputFormatter>? formatters}) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(15)),
       child: TextField(
         controller: controller, 
         obscureText: isPass,

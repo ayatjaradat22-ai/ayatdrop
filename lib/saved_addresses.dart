@@ -94,12 +94,12 @@ class SavedAddressesScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDefault ? dropRed.withOpacity(0.3) : (isDark ? Colors.white10 : Colors.grey.shade100)),
+        border: Border.all(color: isDefault ? dropRed.withValues(alpha: 0.3) : (isDark ? Colors.white10 : Colors.grey.shade100)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -110,7 +110,7 @@ class SavedAddressesScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDefault ? dropRed.withOpacity(0.1) : (isDark ? Colors.white10 : Colors.grey.shade50),
+              color: isDefault ? dropRed.withValues(alpha: 0.1) : (isDark ? Colors.white10 : Colors.grey.shade50),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Icon(icon, color: isDefault ? dropRed : (isDark ? Colors.white54 : Colors.grey[400]), size: 24),

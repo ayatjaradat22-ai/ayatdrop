@@ -19,10 +19,8 @@ import 'alert_me_screen.dart';
 import 'ten_jd_challenge_screen.dart';
 import 'smart_shopping_list_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'premium.dart';
 import 'theme/app_colors.dart';
 import 'store_profile_screen.dart';
-import 'edit_profile.dart';
 
 class MainWrapper extends StatefulWidget {
   final int initialIndex;
@@ -306,7 +304,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             onChanged: (value) => setState(() {}),
             decoration: InputDecoration(
               filled: true,
-              fillColor: Colors.white.withOpacity(0.9),
+              fillColor: Colors.white.withValues(alpha: 0.9),
               hintText: "deal_search_hint".tr(),
               prefixIcon: Icon(Icons.search, color: primaryColor),
               suffixIcon: _searchController.text.isNotEmpty 
@@ -420,9 +418,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         decoration: BoxDecoration(
           color: isHot ? AppColors.getHotDealBackground(context) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: isHot ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1.5) : null,
+          border: isHot ? Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 1.5) : null,
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
           ],
         ),
         child: Column(
@@ -446,7 +444,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isHot ? Colors.orange.withOpacity(0.2) : primaryColor.withOpacity(0.1), 
+                    color: isHot ? Colors.orange.withValues(alpha: 0.2) : primaryColor.withValues(alpha: 0.1), 
                     shape: BoxShape.circle,
                   ),
                   child: Icon(_getCategoryIcon(data['category'], productName), color: primaryColor, size: 22),
@@ -490,15 +488,18 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (isPremium)
-                          IconButton(
-                            icon: const Icon(Icons.share, color: Colors.blue, size: 18),
-                            onPressed: () {
-                              Share.share("share_msg".tr(args: [productName, storeName, newPrice]));
-                            },
-                            constraints: const BoxConstraints(),
-                            padding: EdgeInsets.zero,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.share, color: Colors.blue, size: 18),
+                          onPressed: () {
+                            final box = context.findRenderObject() as RenderBox?;
+                            Share.share(
+                              "share_msg".tr(args: [productName, storeName, newPrice]),
+                              sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+                            );
+                          },
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(5),
+                        ),
                         StreamBuilder<DocumentSnapshot>(
                           stream: FirebaseFirestore.instance
                               .collection('users')
@@ -556,7 +557,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: AppColors.getSubtitleColor(context).withOpacity(0.3), borderRadius: BorderRadius.circular(10)))),
+              Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: AppColors.getSubtitleColor(context).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10)))),
               const SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -584,7 +585,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                     child: Text(
                       "near_you".tr(args: [distanceKm.toStringAsFixed(1)]),
                       style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
@@ -612,14 +613,35 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               Text("current_deal".tr(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).textTheme.bodyLarge?.color)),
               const SizedBox(height: 10),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  if (data['newPrice'] != null)
-                    Text("${data['newPrice']} ${"jod_currency".tr()}", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: primaryColor)),
-                  const SizedBox(width: 12),
-                  if (data['oldPrice'] != null)
-                    Text("${data['oldPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 18, color: Colors.grey, decoration: TextDecoration.lineThrough)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          if (data['newPrice'] != null)
+                            Text("${data['newPrice']} ${"jod_currency".tr()}", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: primaryColor)),
+                          const SizedBox(width: 12),
+                          if (data['oldPrice'] != null)
+                            Text("${data['oldPrice']} ${"jod_currency".tr()}", style: const TextStyle(fontSize: 18, color: Colors.grey, decoration: TextDecoration.lineThrough)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () {
+                      final box = context.findRenderObject() as RenderBox?;
+                      Share.share(
+                        "share_msg".tr(args: [data['product'] ?? "Product", data['storeName'] ?? "Store", data['newPrice']?.toString() ?? ""]),
+                        sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+                      );
+                    },
+                    icon: const Icon(Icons.share, color: Colors.blue, size: 28),
+                  ),
                 ],
               ),
               const SizedBox(height: 25),
@@ -775,7 +797,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, spreadRadius: 5)
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, spreadRadius: 5)
                     ],
                   ),
                   child: QrImageView(
@@ -802,7 +824,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)
                     ],
                   ),
                   child: Center(
@@ -848,15 +870,23 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     final voteDoc = await voteRef.get();
     if (voteDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("already_voted".tr())));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("already_voted".tr())));
+      }
       return;
     }
 
     await voteRef.set({'vote': isUpvote, 'timestamp': FieldValue.serverTimestamp()});
-    FirebaseFirestore.instance.collection('deals').doc(dealId).update({
+    await FirebaseFirestore.instance.collection('deals').doc(dealId).update({
       isUpvote ? 'upvotes' : 'downvotes': FieldValue.increment(1)
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isUpvote ? "thanks_for_rating".tr() : "we_will_verify".tr()), backgroundColor: isUpvote ? Colors.green : Colors.orange));
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(isUpvote ? "thanks_for_rating".tr() : "we_will_verify".tr()), 
+        backgroundColor: isUpvote ? Colors.green : Colors.orange
+      ));
+    }
   }
 
   Future<void> _markAsBought(String dealId, Map<String, dynamic> data) async {
@@ -875,9 +905,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         .collection('bought_deals')
         .doc(dealId);
 
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     final boughtDoc = await boughtRef.get();
     if (boughtDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("already_counted_savings".tr())));
+      messenger.showSnackBar(SnackBar(content: Text("already_counted_savings".tr())));
       return;
     }
 
@@ -898,15 +931,14 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       }
     });
 
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("saved_amount_msg".tr(args: [savedAmount.toStringAsFixed(3)])),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
+    if (!mounted) return;
+    navigator.pop();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text("saved_amount_msg".tr(args: [savedAmount.toStringAsFixed(3)])),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   Future<void> _toggleFavorite(String dealId, Map<String, dynamic> dealData, bool currentlyFav) async {
@@ -1048,7 +1080,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -1138,7 +1170,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           decoration: BoxDecoration(
             color: AppColors.getSavingsCardBackground(context), 
             borderRadius: BorderRadius.circular(25), 
-            border: Border.all(color: Colors.green.withOpacity(0.1))
+            border: Border.all(color: Colors.green.withValues(alpha: 0.1))
           ),
           child: Row(
             children: [
@@ -1206,7 +1238,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing ? Colors.grey[200] : primaryColor.withOpacity(0.1),
+              backgroundColor: isFollowing ? Colors.grey[200] : primaryColor.withValues(alpha: 0.1),
               foregroundColor: isFollowing ? Colors.black : primaryColor,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),

@@ -159,7 +159,7 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
                   GestureDetector(
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StoreSignUpScreen())),
                     child: Text(
-                      " " + "signup_action".tr(),
+                      " ${"signup_action".tr()}",
                       style: const TextStyle(color: dropRed, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -186,7 +186,7 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -197,7 +197,7 @@ class _StoreLoginScreenState extends State<StoreLoginScreen> {
         obscureText: isPassword && !isVisible,
         decoration: InputDecoration(
           hintText: hint,
-          prefixIcon: Icon(icon, color: dropRed.withOpacity(0.7), size: 20),
+          prefixIcon: Icon(icon, color: dropRed.withValues(alpha: 0.7), size: 20),
           suffixIcon: isPassword
               ? IconButton(
             icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off, size: 18, color: Colors.grey),

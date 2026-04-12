@@ -13,7 +13,6 @@ class PremiumScreen extends StatefulWidget {
 class _PremiumScreenState extends State<PremiumScreen> {
   final user = FirebaseAuth.instance.currentUser;
   static const Color dropRed = Color(0xFFFF1111);
-  static const Color deepRed = Color(0xFF8B0000);
 
   Future<void> _togglePremium(bool currentStatus) async {
     try {
@@ -68,8 +67,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: [
-                            dropRed.withOpacity(0.2),
-                            dropRed.withOpacity(0.0),
+                            dropRed.withValues(alpha: 0.2),
+                            dropRed.withValues(alpha: 0.0),
                           ],
                         ),
                       ),
@@ -81,7 +80,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: dropRed.withOpacity(0.15),
+                            color: dropRed.withValues(alpha: 0.15),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),
@@ -138,7 +137,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: dropRed.withOpacity(0.4),
+                            color: dropRed.withValues(alpha: 0.4),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -161,9 +160,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.05),
+                      color: Colors.green.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: Colors.green.withOpacity(0.2), width: 1.5),
+                      border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 1.5),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -189,9 +188,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.1),
+        color: Colors.amber.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.amber.withOpacity(0.3)),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -219,10 +218,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -233,7 +232,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: dropRed.withOpacity(0.05),
+              color: dropRed.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: dropRed, size: 24),

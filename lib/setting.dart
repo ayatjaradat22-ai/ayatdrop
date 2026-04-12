@@ -5,8 +5,8 @@ import 'change_password.dart';
 import 'aboutapp.dart';
 import 'premium.dart';
 import 'saved_stores.dart';
-import 'FAQ.dart';
-import 'store_login.dart';
+import 'faq.dart';
+
 import 'drop.dart'; // استيراد شاشة تسجيل الدخول الصحيحة
 import 'package:provider/provider.dart';
 import 'main.dart';
@@ -125,12 +125,12 @@ class _SettingScreenState extends State<SettingScreen> {
         decoration: BoxDecoration(
           color: AppColors.getScaffoldBackground(context),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20)],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(10)))),
+            Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10)))),
             const SizedBox(height: 25),
             Text(
               "choose_theme".tr(),
@@ -150,11 +150,12 @@ class _SettingScreenState extends State<SettingScreen> {
                 childAspectRatio: 1.1,
                 children: [
                   _buildThemeCard(AppTheme.light, "theme_light".tr(), Colors.white, AppColors.dropRed),
-                  _buildThemeCard(AppTheme.dark, "theme_dark".tr(), const Color(0xFF1E1E1E), AppColors.dropRed),
-                  _buildThemeCard(AppTheme.midnight, "theme_midnight".tr(), const Color(0xFF0D1117), const Color(0xFF1A237E)),
-                  _buildThemeCard(AppTheme.forest, "theme_forest".tr(), const Color(0xFFF1F8E9), const Color(0xFF2E7D32)),
-                  _buildThemeCard(AppTheme.purple, "theme_purple".tr(), const Color(0xFF120024), const Color(0xFF4A148C)),
-                  _buildThemeCard(AppTheme.pink, "theme_pink".tr(), const Color(0xFFFFF1F6), const Color(0xFFE91E63)),
+                  _buildThemeCard(AppTheme.navyWhite, "theme_navy_white".tr(), const Color(0xFFF8F9FA), const Color(0xFF001F3F)),
+                  _buildThemeCard(AppTheme.purpleBlue, "theme_purple_blue".tr(), const Color(0xFF0A0E14), const Color(0xFF9C27B0)),
+                  _buildThemeCard(AppTheme.forest, "theme_forest".tr(), const Color(0xFFF1F8E9), const Color(0xFF00695C)),
+                  _buildThemeCard(AppTheme.pink, "theme_pink".tr(), const Color(0xFFFFF1F6), const Color(0xFFF06292)),
+                  _buildThemeCard(AppTheme.brown, "theme_brown".tr(), const Color(0xFFEFEBE9), const Color(0xFF795548)),
+                  _buildThemeCard(AppTheme.orangeWhite, "theme_orange_white".tr(), Colors.white, Colors.orange),
                 ],
               ),
             ),
@@ -179,12 +180,12 @@ class _SettingScreenState extends State<SettingScreen> {
           color: bg,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? accent : Colors.grey.withOpacity(0.2),
+            color: isSelected ? accent : Colors.grey.withValues(alpha: 0.2),
             width: isSelected ? 3 : 1,
           ),
           boxShadow: isSelected 
-            ? [BoxShadow(color: accent.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))]
-            : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+            ? [BoxShadow(color: accent.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))]
+            : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5)],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
@@ -192,21 +193,21 @@ class _SettingScreenState extends State<SettingScreen> {
             children: [
               Positioned(
                 top: 0, left: 0, right: 0,
-                child: Container(height: 15, color: accent.withOpacity(0.8)),
+                child: Container(height: 15, color: accent.withValues(alpha: 0.8)),
               ),
               Positioned(
                 bottom: 12, left: 12,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 40, height: 6, decoration: BoxDecoration(color: isSelected ? accent : Colors.grey.withOpacity(0.5), borderRadius: BorderRadius.circular(5))),
+                    Container(width: 40, height: 6, decoration: BoxDecoration(color: isSelected ? accent : Colors.grey.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(5))),
                     const SizedBox(height: 4),
                     Text(
                       name,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: theme == AppTheme.light || theme == AppTheme.forest || theme == AppTheme.pink ? Colors.black87 : Colors.white,
+                        color: theme == AppTheme.light || theme == AppTheme.forest || theme == AppTheme.pink || theme == AppTheme.brown || theme == AppTheme.orangeWhite || theme == AppTheme.navyWhite ? Colors.black87 : Colors.white,
                       ),
                     ),
                   ],
@@ -265,14 +266,14 @@ class _SettingScreenState extends State<SettingScreen> {
           image: AssetImage("images/splash_screen.png"),
           fit: BoxFit.cover,
         ),
-        boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: primaryColor.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Container(
         padding: const EdgeInsets.all(25),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(25),
           gradient: LinearGradient(
-            colors: [Colors.black.withOpacity(0.6), Colors.black.withOpacity(0.2)],
+            colors: [Colors.black.withValues(alpha: 0.6), Colors.black.withValues(alpha: 0.2)],
             begin: Alignment.bottomRight,
             end: Alignment.topLeft,
           ),

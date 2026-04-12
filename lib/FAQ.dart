@@ -39,7 +39,7 @@ class FAQScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
       ),
@@ -50,7 +50,7 @@ class FAQScreen extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: dropRed),
         ),
         iconColor: dropRed,
-        collapsedIconColor: dropRed.withOpacity(0.5),
+        collapsedIconColor: dropRed.withValues(alpha: 0.5),
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),

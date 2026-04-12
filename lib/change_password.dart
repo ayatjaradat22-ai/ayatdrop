@@ -50,7 +50,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
       ),
     );
   }
@@ -127,16 +127,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: dropRed.withOpacity(0.05),
+        color: dropRed.withValues(alpha: 0.05),
         shape: BoxShape.circle,
       ),
-      child: Stack(
+      child: const Stack(
         alignment: Alignment.center,
         children: [
-          const Icon(Icons.shield_rounded, color: dropRed, size: 70),
+          Icon(Icons.shield_rounded, color: dropRed, size: 70),
           Positioned(
             top: 22,
-            child: const Icon(Icons.lock_rounded, color: Colors.white, size: 28),
+            child: Icon(Icons.lock_rounded, color: Colors.white, size: 28),
           ),
         ],
       ),
@@ -155,7 +155,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
           ),
@@ -189,7 +189,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         onPressed: _isLoading ? null : _updatePassword,
         style: ElevatedButton.styleFrom(
           backgroundColor: dropRed,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(18))),
           elevation: 0,
         ),
         child: _isLoading

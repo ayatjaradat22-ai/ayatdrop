@@ -3,7 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as ll;
 import 'theme/app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -19,7 +19,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   double _range = 10.0;
   List<String> _selectedCategories = [];
   final List<String> _allCategories = ['cat_food', 'cat_fashion', 'cat_cafes', 'cat_tech', 'cat_games'];
-  LatLng _currentUserLocation = const LatLng(31.9539, 35.9106);
+  ll.LatLng _currentUserLocation = const ll.LatLng(31.9539, 35.9106);
 
   @override
   void initState() {
@@ -42,7 +42,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       Position position = await Geolocator.getCurrentPosition();
       if (mounted) {
         setState(() {
-          _currentUserLocation = LatLng(position.latitude, position.longitude);
+          _currentUserLocation = ll.LatLng(position.latitude, position.longitude);
         });
       }
     } catch (e) {
@@ -53,16 +53,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _loadUserSettings() async {
     if (user == null) return;
     final doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
-    if (doc.exists) {
-      final data = doc.data() as Map<String, dynamic>;
-      setState(() {
-        _range = (data['notif_range'] ?? 10.0).toDouble();
-        _selectedCategories = List<String>.from(data['notif_categories'] ?? []);
-        if (data['default_lat'] != null && data['default_lng'] != null) {
-          _currentUserLocation = LatLng(data['default_lat'], data['default_lng']);
-        }
-      });
-    }
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _range = (data['notif_range'] ?? 10.0).toDouble();
+          _selectedCategories = List<String>.from(data['notif_categories'] ?? []);
+          if (data['default_lat'] != null && data['default_lng'] != null) {
+            _currentUserLocation = ll.LatLng(data['default_lat'], data['default_lng']);
+          }
+        });
+      }
   }
 
   Future<void> _saveSettings() async {
@@ -88,7 +88,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         }, SetOptions(merge: true));
         
         setState(() {
-          _currentUserLocation = LatLng(position.latitude, position.longitude);
+          _currentUserLocation = ll.LatLng(position.latitude, position.longitude);
         });
 
         if (mounted) {
@@ -189,9 +189,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.grey[800] : Colors.blue.withOpacity(0.05),
+              color: isDark ? Colors.grey[800] : Colors.blue.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.withOpacity(0.2)),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
             ),
             child: Column(
               children: [
@@ -305,14 +305,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isFollowed ? primaryColor.withOpacity(0.3) : Colors.grey.withOpacity(0.1), width: isFollowed ? 1.5 : 1),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
+        border: Border.all(color: isFollowed ? primaryColor.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.1), width: isFollowed ? 1.5 : 1),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: isFollowed ? primaryColor.withOpacity(0.1) : Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: isFollowed ? primaryColor.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(isFollowed ? Icons.star_rounded : Icons.local_offer_rounded, color: isFollowed ? primaryColor : Colors.blue, size: 22),
           ),
           const SizedBox(width: 15),
@@ -351,7 +351,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_none_rounded, size: 80, color: Colors.grey.withOpacity(0.2)),
+          Icon(Icons.notifications_none_rounded, size: 80, color: Colors.grey.withValues(alpha: 0.2)),
           const SizedBox(height: 15),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),

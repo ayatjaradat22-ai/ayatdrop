@@ -152,7 +152,7 @@ class _CardScreenState extends State<CardScreen> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFF232526), Color(0xFF414345)], begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 10))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 15, offset: const Offset(0, 10))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,7 +198,7 @@ class _CardScreenState extends State<CardScreen> {
             decoration: InputDecoration(
               prefixIcon: Icon(icon, color: dropRed, size: 20),
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.black.withOpacity(0.1)),
+              hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.1)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 15),
             ),

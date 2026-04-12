@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'app_colors.dart';
+import 'theme/app_colors.dart';
 
 class StoreAnalyticsScreen extends StatelessWidget {
   const StoreAnalyticsScreen({super.key});
@@ -83,9 +83,9 @@ class StoreAnalyticsScreen extends StatelessWidget {
   Widget _buildSummaryHeader(int clicks, int favs) {
     return Container(
       padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.dropRed,
-        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,

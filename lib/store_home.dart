@@ -8,7 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'checkout_screen.dart';
 import 'store_analytics_screen.dart';
 import 'qr_scanner_screen.dart';
-import 'app_colors.dart';
+
 
 class StoreHomeScreen extends StatefulWidget {
   const StoreHomeScreen({super.key});
@@ -191,20 +191,24 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    DateTime currentExpiry = subscriptionExpiry ?? DateTime.now();
-    DateTime newExpiry = currentExpiry.isBefore(DateTime.now()) 
-        ? DateTime.now().add(Duration(days: days))
-        : currentExpiry.add(Duration(days: days));
+    try {
+      DateTime currentExpiry = subscriptionExpiry ?? DateTime.now();
+      DateTime newExpiry = currentExpiry.isBefore(DateTime.now()) 
+          ? DateTime.now().add(Duration(days: days))
+          : currentExpiry.add(Duration(days: days));
 
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-      'subscriptionExpiry': Timestamp.fromDate(newExpiry),
-      'isSubscribed': true,
-      'lastPaymentDate': FieldValue.serverTimestamp(),
-    });
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'subscriptionExpiry': Timestamp.fromDate(newExpiry),
+        'isSubscribed': true,
+        'lastPaymentDate': FieldValue.serverTimestamp(),
+      });
 
-    if (mounted) {
-      setState(() => subscriptionExpiry = newExpiry);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("publish_discount_button".tr()), backgroundColor: Colors.green));
+      if (mounted) {
+        setState(() => subscriptionExpiry = newExpiry);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("publish_discount_button".tr()), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      _showError(e.toString());
     }
   }
 
@@ -381,8 +385,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with SingleTickerProv
   }
 
   void _deleteDeal(String id) async { 
-    await FirebaseFirestore.instance.collection('deals').doc(id).delete(); 
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("cancel_edit".tr())));
+    try {
+      await FirebaseFirestore.instance.collection('deals').doc(id).delete(); 
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("cancel_edit".tr())));
+    } catch (e) {
+      _showError(e.toString());
+    }
   }
 
   void _showError(String msg) {

@@ -60,15 +60,15 @@ class ExclusiveDealsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: dropRed.withOpacity(0.2), width: 2),
-        boxShadow: [BoxShadow(color: dropRed.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
+        border: Border.all(color: dropRed.withValues(alpha: 0.2), width: 2),
+        boxShadow: [BoxShadow(color: dropRed.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: dropRed.withOpacity(0.05),
+              color: dropRed.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(23), topRight: Radius.circular(23)),
             ),
             child: Row(
@@ -106,7 +106,7 @@ class ExclusiveDealsScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200, style: BorderStyle.solid),
                   ),

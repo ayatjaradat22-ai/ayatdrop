@@ -123,8 +123,8 @@ class TenJdChallengeScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +134,7 @@ class TenJdChallengeScreen extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                 child: Text("items_bundle".tr(args: [items.length.toString()]), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
               Text("< 10 JOD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700)),
@@ -147,7 +147,7 @@ class TenJdChallengeScreen extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8.0),
               child: _buildItemRow(data['storeName'] ?? "Store", data['product'] ?? "Item", data['newPrice']?.toString() ?? "0"),
             );
-          }).toList(),
+          }),
           const Divider(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

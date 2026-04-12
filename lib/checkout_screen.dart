@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final double amount;
@@ -76,9 +74,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: dropRed.withOpacity(0.05),
+                color: dropRed.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: dropRed.withOpacity(0.1)),
+                border: Border.all(color: dropRed.withValues(alpha: 0.1)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -88,7 +86,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     children: [
                       Text("تجديد الاشتراك", style: TextStyle(color: Colors.grey[600], fontSize: 14)),
                       const SizedBox(height: 5),
-                      Text("${widget.days} " + "hours_short".tr().replaceAll('ساعة', 'يوم'), 
+                      Text("${widget.days} ${"hours_short".tr().replaceAll('ساعة', 'يوم')}",
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     ],
                   ),
