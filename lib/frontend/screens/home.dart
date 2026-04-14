@@ -19,7 +19,7 @@ import 'alert_me_screen.dart';
 import 'ten_jd_challenge_screen.dart';
 import 'smart_shopping_list_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'theme/app_colors.dart';
+import '../../frontend/theme/app_colors.dart';
 import 'store_profile_screen.dart';
 
 class MainWrapper extends StatefulWidget {

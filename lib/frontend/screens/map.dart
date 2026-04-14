@@ -8,7 +8,7 @@ import 'dart:ui' as ui;
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'premium.dart';
-import 'theme/app_colors.dart';
+import '../../frontend/theme/app_colors.dart';
 
 class MapScreen extends StatefulWidget {
   final LatLng? targetLocation;

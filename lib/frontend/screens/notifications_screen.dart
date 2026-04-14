@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as ll;
-import 'theme/app_colors.dart';
+import '../../frontend/theme/app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});

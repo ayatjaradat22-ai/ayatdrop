@@ -15,7 +15,7 @@ import 'saved_stores.dart';
 import 'premium.dart';
 import 'store_home.dart';
 import 'store_login.dart';
-import 'theme/app_colors.dart';
+import '../../frontend/theme/app_colors.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});

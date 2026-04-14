@@ -9,10 +9,10 @@ import 'faq.dart';
 
 import 'drop.dart'; // استيراد شاشة تسجيل الدخول الصحيحة
 import 'package:provider/provider.dart';
-import 'main.dart';
+import '../../main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'theme/app_colors.dart'; // استخدام المسار الجديد فقط
+import '../../frontend/theme/app_colors.dart'; // استخدام المسار الجديد فقط
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});

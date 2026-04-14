@@ -9,8 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 // استخدام المسار الموحد الجديد حصراً
-import 'theme/app_colors.dart';
-import 'screens/misc/splash_screen.dart';
+import 'frontend/theme/app_colors.dart';
+import 'frontend/screens/splash_screen.dart';
 
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
   'high_importance_channel',

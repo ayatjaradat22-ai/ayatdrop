@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'database_service.dart';
+import '../../backend/services/database_service.dart';
 import 'store_home.dart';
 
 class StoreRegistrationScreen extends StatefulWidget {

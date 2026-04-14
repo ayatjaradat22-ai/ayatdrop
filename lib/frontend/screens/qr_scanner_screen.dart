@@ -3,7 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
-import 'theme/app_colors.dart';
+import '../../frontend/theme/app_colors.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});

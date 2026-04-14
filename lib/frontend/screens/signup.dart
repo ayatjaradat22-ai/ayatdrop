@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'database_service.dart';
+import '../../backend/services/database_service.dart';
 import 'home.dart';
-import 'theme/app_colors.dart';
+import '../../frontend/theme/app_colors.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
